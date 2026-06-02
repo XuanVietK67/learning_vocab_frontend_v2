@@ -85,6 +85,36 @@ export interface AdminVocabulary {
   topics: Topic[];
 }
 
+/** Background dictionary-enrichment state on a vocabulary, or null. */
+export type EnrichmentStatus = "pending" | "enriched" | "failed" | null;
+
+/**
+ * A single vocabulary with its full sense tree — the shape returned by the
+ * public `GET /v1/vocabularies/:id`. Admin-only fields (visibility, isApproved,
+ * createdByUserId) are absent here; the admin editor only mutates the fields
+ * below, so the public read is sufficient for `source="system"` words.
+ */
+export interface VocabularyDetail {
+  id: string;
+  language: string;
+  lemma: string;
+  partOfSpeech: string;
+  ipa: string | null;
+  cefrLevel: CefrLevel | null;
+  frequencyRank: number | null;
+  audioUrl: string | null;
+  source: VocabSource;
+  enrichmentStatus: EnrichmentStatus;
+  senses: AdminSense[];
+  topics: Topic[];
+}
+
+/** Result returned by admin mutation Server Actions (consumed via useActionState). */
+export interface ActionResult {
+  ok: boolean;
+  error?: string;
+}
+
 /** Query params accepted by `GET /v1/admin/vocabularies` (all optional). */
 export interface AdminVocabularyFilters {
   language?: string;

@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { PlusIcon } from "lucide-react";
 
 import { Pagination } from "@/components/admin/pagination";
 import { VocabFilters } from "@/components/admin/vocab-filters";
 import { VocabTable } from "@/components/admin/vocab-table";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   CEFR_LEVELS,
   type AdminVocabularyFilters,
@@ -54,13 +58,22 @@ export default async function AdminVocabulariesPage({
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-8 sm:px-6 lg:py-10">
-      <header className="flex flex-col gap-1">
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">
-          Vocabulary
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Every word in the catalog — system and user-submitted.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="font-heading text-2xl font-semibold tracking-tight">
+            Vocabulary
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Every word in the catalog — system and user-submitted.
+          </p>
+        </div>
+        <Link
+          href="/admin/vocabularies/new"
+          className={cn(buttonVariants({ size: "sm" }))}
+        >
+          <PlusIcon className="size-4" />
+          New word
+        </Link>
       </header>
 
       <VocabFilters />
