@@ -17,7 +17,7 @@ import {
 
 /** Where to send a user once authenticated, based on onboarding state. */
 function homeFor(user: UserResponse): string {
-  return user.isOnboarded ? "/" : "/onboarding";
+  return user.isOnboarded ? "/dashboard" : "/onboarding";
 }
 
 export async function loginAction(
@@ -180,7 +180,7 @@ export async function completeOnboardingAction(
     return { error: firstMessage(res.error) ?? "Could not save your preferences." };
   }
 
-  redirect("/");
+  redirect("/dashboard");
 }
 
 export async function logoutAction(): Promise<void> {
