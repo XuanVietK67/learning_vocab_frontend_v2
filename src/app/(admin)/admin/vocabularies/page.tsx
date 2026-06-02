@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, UploadIcon } from "lucide-react";
 
 import { Pagination } from "@/components/admin/pagination";
 import { VocabFilters } from "@/components/admin/vocab-filters";
@@ -67,13 +67,22 @@ export default async function AdminVocabulariesPage({
             Every word in the catalog — system and user-submitted.
           </p>
         </div>
-        <Link
-          href="/admin/vocabularies/new"
-          className={cn(buttonVariants({ size: "sm" }))}
-        >
-          <PlusIcon className="size-4" />
-          New word
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/vocabularies/import"
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
+            <UploadIcon className="size-4" />
+            Import
+          </Link>
+          <Link
+            href="/admin/vocabularies/new"
+            className={cn(buttonVariants({ size: "sm" }))}
+          >
+            <PlusIcon className="size-4" />
+            New word
+          </Link>
+        </div>
       </header>
 
       <VocabFilters />

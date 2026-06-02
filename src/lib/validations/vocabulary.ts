@@ -89,6 +89,52 @@ export const exampleSchema = z.object({
   source: optionalText(32),
 });
 
+// ── Bulk import (`POST /v1/admin/vocabularies/bulk-import`) ──────────────────
+// Validates the pasted/uploaded item tree before sending. The backend is the
+// final authority (it rejects unknown fields), so this stays lenient but checks
+// the shape that commonly trips people up: required keys and array bounds.
+
+const importTranslation = z.object({
+  language: z.string().regex(LANGUAGE_RE, "translation.language must be an ISO code"),
+  translation: z.string().min(1),
+  note: z.string().optional(),
+  source: z.string().optional(),
+});
+
+const importExample = z.object({
+  sentence: z.string().min(1),
+  translation: z.string().optional(),
+  source: z.string().optional(),
+});
+
+const importSense = z.object({
+  gloss: z.string().optional(),
+  definition: z.string().optional(),
+  imageUrl: z.string().optional(),
+  synonyms: z.array(z.string()).optional(),
+  antonyms: z.array(z.string()).optional(),
+  translations: z.array(importTranslation).optional(),
+  examples: z.array(importExample).optional(),
+});
+
+const importItem = z.object({
+  language: z.string().regex(LANGUAGE_RE, "language must be an ISO code"),
+  lemma: z.string().min(1, "lemma is required"),
+  partOfSpeech: z.string().min(1, "partOfSpeech is required"),
+  ipa: z.string().optional(),
+  cefrLevel: z.enum(CEFR).optional(),
+  audioUrl: z.string().optional(),
+  topics: z.array(z.string()).optional(),
+  senses: z.array(importSense).min(1, "each item needs at least one sense").max(16),
+});
+
+export const bulkImportSchema = z.object({
+  items: z
+    .array(importItem)
+    .min(1, "Provide at least one item")
+    .max(500, "At most 500 items per import"),
+});
+
 export type CreateVocabularyInput = z.infer<typeof createVocabularySchema>;
 export type VocabularyFieldsInput = z.infer<typeof vocabularyFieldsSchema>;
 export type SenseInput = z.infer<typeof senseSchema>;

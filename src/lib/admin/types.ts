@@ -115,6 +115,22 @@ export interface ActionResult {
   error?: string;
 }
 
+/** Counts returned by `POST /v1/admin/vocabularies/bulk-import`. */
+export interface BulkImportSummary {
+  upserted: number;
+  inserted: number;
+  updated: number;
+  sensesAdded: number;
+  translationsAdded: number;
+  examplesAdded: number;
+  topicLinksAdded: number;
+}
+
+/** Result of the bulk-import action — carries the summary on success. */
+export interface ImportResult extends ActionResult {
+  summary?: BulkImportSummary;
+}
+
 /** Query params accepted by `GET /v1/admin/vocabularies` (all optional). */
 export interface AdminVocabularyFilters {
   language?: string;
