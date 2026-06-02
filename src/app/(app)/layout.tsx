@@ -22,7 +22,7 @@ export default async function AppLayout({
     <div className="flex flex-1">
       <AppSidebar user={user} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <AppMobileBar />
+        <AppMobileBar user={user} />
         {!user.isEmailVerified && <VerifyEmailBanner />}
         <main className="flex-1">{children}</main>
       </div>
