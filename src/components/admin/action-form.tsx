@@ -20,6 +20,8 @@ interface ActionFormProps {
   successMessage?: string;
   /** Reset uncontrolled inputs on success — off for "edit in place" forms. */
   resetOnSuccess?: boolean;
+  /** Called after a successful submit (e.g. to collapse an inline editor). */
+  onSuccess?: () => void;
 }
 
 /**
@@ -33,6 +35,7 @@ export function ActionForm({
   className,
   successMessage,
   resetOnSuccess = false,
+  onSuccess,
 }: ActionFormProps) {
   const [state, formAction] = useActionState(action, INITIAL);
   const formRef = useRef<HTMLFormElement>(null);
@@ -44,8 +47,9 @@ export function ActionForm({
     if (state.ok) {
       if (resetOnSuccess) formRef.current?.reset();
       if (successMessage) toast.success(successMessage);
+      onSuccess?.();
     }
-  }, [state, successMessage, resetOnSuccess]);
+  }, [state, successMessage, resetOnSuccess, onSuccess]);
 
   return (
     <form ref={formRef} action={formAction} className={className}>

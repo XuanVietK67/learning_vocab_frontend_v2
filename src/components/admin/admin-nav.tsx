@@ -27,7 +27,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { label: "Overview", href: "/admin", icon: LayoutDashboardIcon },
   { label: "Vocabulary", href: "/admin/vocabularies", icon: BookMarkedIcon },
-  { label: "Topics", href: "/admin/topics", icon: TagsIcon, disabled: true },
+  { label: "Topics", href: "/admin/topics", icon: TagsIcon },
   { label: "Users", href: "/admin/users", icon: UsersIcon, disabled: true },
 ];
 
