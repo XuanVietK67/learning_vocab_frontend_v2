@@ -6,13 +6,14 @@ import type { ZodError } from "zod";
 
 import { authedRequest, firstMessage } from "@/lib/api";
 import {
+  bulkImportSchema,
   createVocabularySchema,
   exampleSchema,
   senseSchema,
   translationSchema,
   vocabularyFieldsSchema,
 } from "@/lib/validations/vocabulary";
-import type { ActionResult } from "./types";
+import type { ActionResult, BulkImportSummary, ImportResult } from "./types";
 
 const LIST_PATH = "/admin/vocabularies";
 
@@ -171,6 +172,47 @@ export async function deleteVocabularyAction(formData: FormData): Promise<void> 
 
   revalidatePath(LIST_PATH);
   redirect(LIST_PATH);
+}
+
+/**
+ * Idempotent bulk upsert from pasted/uploaded JSON
+ * (`POST /v1/admin/vocabularies/bulk-import`). Accepts either a bare array of
+ * items or a `{ items: [...] }` envelope. Returns the count summary on success.
+ */
+export async function bulkImportAction(
+  _prev: ImportResult,
+  formData: FormData,
+): Promise<ImportResult> {
+  const raw = String(formData.get("items") ?? "").trim();
+  if (!raw) return { ok: false, error: "Paste JSON or upload a file first." };
+
+  let json: unknown;
+  try {
+    json = JSON.parse(raw);
+  } catch {
+    return { ok: false, error: "That isn't valid JSON." };
+  }
+
+  const payload = Array.isArray(json) ? { items: json } : json;
+  const parsed = bulkImportSchema.safeParse(payload);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const where = issue?.path.length ? `${issue.path.join(".")}: ` : "";
+    return { ok: false, error: `${where}${issue?.message ?? "Invalid items."}` };
+  }
+
+  const res = await authedRequest<BulkImportSummary>(
+    "/v1/admin/vocabularies/bulk-import",
+    { method: "POST", body: JSON.stringify(parsed.data) },
+  );
+
+  if (!res.ok || !res.data) {
+    if (res.status === 401) redirect("/login");
+    return { ok: false, error: firstMessage(res.error) ?? "Import failed." };
+  }
+
+  revalidatePath(LIST_PATH);
+  return { ok: true, summary: res.data };
 }
 
 // ── Senses ────────────────────────────────────────────────────────────────
