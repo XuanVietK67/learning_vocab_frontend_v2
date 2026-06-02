@@ -28,7 +28,7 @@ const NAV: NavItem[] = [
   { label: "Overview", href: "/admin", icon: LayoutDashboardIcon },
   { label: "Vocabulary", href: "/admin/vocabularies", icon: BookMarkedIcon },
   { label: "Topics", href: "/admin/topics", icon: TagsIcon },
-  { label: "Users", href: "/admin/users", icon: UsersIcon, disabled: true },
+  { label: "Users", href: "/admin/users", icon: UsersIcon },
 ];
 
 /** Exact match for the index route, prefix match for the rest. */
