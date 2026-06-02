@@ -6,7 +6,12 @@
  */
 import { apiRequest } from "../api";
 import { getAccessToken } from "../auth/session";
-import type { AdminVocabulary, AdminVocabularyFilters, Paginated } from "./types";
+import type {
+  AdminVocabulary,
+  AdminVocabularyFilters,
+  Paginated,
+  VocabularyDetail,
+} from "./types";
 
 const EMPTY_PAGE: Paginated<AdminVocabulary> = {
   data: [],
@@ -43,4 +48,24 @@ export async function listAdminVocabularies(
     token,
   );
   return res.ok && res.data ? res.data : EMPTY_PAGE;
+}
+
+/**
+ * Read a single vocabulary with its full sense tree for the detail editor.
+ * There is no admin GET-by-id, so this uses the public `GET /v1/vocabularies/:id`
+ * (no auth) — which resolves `source="system"` words. Returns `null` for
+ * user-submitted words (not exposed there) or any error, so the page can 404.
+ */
+export async function getVocabularyDetail(
+  id: string,
+  translationLang?: string,
+): Promise<VocabularyDetail | null> {
+  const query = translationLang
+    ? `?translationLang=${encodeURIComponent(translationLang)}`
+    : "";
+  const res = await apiRequest<VocabularyDetail>(
+    `/v1/vocabularies/${id}${query}`,
+    { method: "GET" },
+  );
+  return res.ok ? res.data : null;
 }
