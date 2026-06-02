@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeftIcon } from "lucide-react";
 
+import { SenseList } from "./sense-list";
 import { VocabFieldsForm } from "./vocab-fields-form";
 import { ActionForm } from "@/components/admin/action-form";
 import { AdminSubmit } from "@/components/admin/admin-submit";
@@ -128,62 +129,8 @@ export default async function EditVocabularyPage({
         <CardHeader>
           <CardTitle>Senses ({vocab.senses.length})</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          {vocab.senses.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              This word has no senses yet.
-            </p>
-          ) : (
-            vocab.senses.map((sense) => (
-              <div
-                key={sense.id}
-                className="flex flex-col gap-2 rounded-lg border border-border/60 p-3"
-              >
-                <div className="flex items-baseline gap-2">
-                  <span className="flex size-5 shrink-0 items-center justify-center rounded bg-muted text-xs font-semibold">
-                    {sense.senseOrder}
-                  </span>
-                  <span className="font-medium">{sense.gloss ?? "—"}</span>
-                </div>
-                {sense.definition && (
-                  <p className="text-sm text-muted-foreground">
-                    {sense.definition}
-                  </p>
-                )}
-                {sense.translations.length > 0 && (
-                  <ul className="flex flex-col gap-0.5 text-sm">
-                    {sense.translations.map((t) => (
-                      <li key={t.id}>
-                        <span className="text-muted-foreground">
-                          {t.language}:
-                        </span>{" "}
-                        {t.translation}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {sense.examples.length > 0 && (
-                  <ul className="flex flex-col gap-1 border-l-2 border-border pl-3 text-sm">
-                    {sense.examples.map((ex) => (
-                      <li key={ex.id}>
-                        <span className="italic">{ex.sentence}</span>
-                        {ex.translation && (
-                          <span className="text-muted-foreground">
-                            {" "}
-                            — {ex.translation}
-                          </span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ))
-          )}
-          <p className="text-xs text-muted-foreground">
-            Editing senses, translations, and examples individually is coming
-            next.
-          </p>
+        <CardContent>
+          <SenseList vocabularyId={vocab.id} senses={vocab.senses} />
         </CardContent>
       </Card>
     </div>

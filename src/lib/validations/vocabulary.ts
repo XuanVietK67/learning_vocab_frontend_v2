@@ -65,5 +65,32 @@ export const vocabularyFieldsSchema = z.object({
     .transform((v) => (v ? v : undefined)),
 });
 
+/** Add or patch a sense — gloss / definition / imageUrl (all optional). */
+export const senseSchema = z.object({
+  gloss: optionalText(128),
+  definition: optionalText(512),
+  imageUrl: z
+    .union([z.literal(""), z.url("Enter a valid URL.").max(2048)])
+    .optional()
+    .transform((v) => (v ? v : undefined)),
+});
+
+/** Add a translation to a sense (`POST …/translations`). */
+export const translationSchema = z.object({
+  language: z.string().regex(LANGUAGE_RE, "Choose a language."),
+  translation: z.string().trim().min(1, "Translation is required.").max(256),
+  note: optionalText(256),
+});
+
+/** Add an example to a sense (`POST …/examples`). */
+export const exampleSchema = z.object({
+  sentence: z.string().trim().min(1, "Sentence is required.").max(512),
+  translation: optionalText(512),
+  source: optionalText(32),
+});
+
 export type CreateVocabularyInput = z.infer<typeof createVocabularySchema>;
 export type VocabularyFieldsInput = z.infer<typeof vocabularyFieldsSchema>;
+export type SenseInput = z.infer<typeof senseSchema>;
+export type TranslationInput = z.infer<typeof translationSchema>;
+export type ExampleInput = z.infer<typeof exampleSchema>;

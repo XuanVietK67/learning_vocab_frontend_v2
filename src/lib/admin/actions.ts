@@ -7,11 +7,19 @@ import type { ZodError } from "zod";
 import { authedRequest, firstMessage } from "@/lib/api";
 import {
   createVocabularySchema,
+  exampleSchema,
+  senseSchema,
+  translationSchema,
   vocabularyFieldsSchema,
 } from "@/lib/validations/vocabulary";
 import type { ActionResult } from "./types";
 
 const LIST_PATH = "/admin/vocabularies";
+
+/** Path of a single vocabulary's editor — the page to revalidate after edits. */
+function editorPath(vocabularyId: string): string {
+  return `${LIST_PATH}/${vocabularyId}`;
+}
 
 /** First Zod issue message, for surfacing a single inline error. */
 function firstIssue(error: ZodError): string {
@@ -163,4 +171,226 @@ export async function deleteVocabularyAction(formData: FormData): Promise<void> 
 
   revalidatePath(LIST_PATH);
   redirect(LIST_PATH);
+}
+
+// ── Senses ────────────────────────────────────────────────────────────────
+
+/** Append a sense to a vocabulary (`POST /:id/senses`). */
+export async function addSenseAction(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const vocabularyId = String(formData.get("vocabularyId") ?? "");
+  if (!vocabularyId) return { ok: false, error: "Missing vocabulary id." };
+
+  const parsed = senseSchema.safeParse({
+    gloss: formData.get("gloss"),
+    definition: formData.get("definition"),
+    imageUrl: formData.get("imageUrl"),
+  });
+  if (!parsed.success) return { ok: false, error: firstIssue(parsed.error) };
+
+  const v = parsed.data;
+  const res = await authedRequest(
+    `/v1/admin/vocabularies/${vocabularyId}/senses`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        ...(v.gloss ? { gloss: v.gloss } : {}),
+        ...(v.definition ? { definition: v.definition } : {}),
+        ...(v.imageUrl ? { imageUrl: v.imageUrl } : {}),
+      }),
+    },
+  );
+
+  if (!res.ok) {
+    if (res.status === 401) redirect("/login");
+    return { ok: false, error: firstMessage(res.error) ?? "Could not add the sense." };
+  }
+
+  revalidatePath(editorPath(vocabularyId));
+  return { ok: true };
+}
+
+/** Patch a sense's gloss / definition / imageUrl (`PATCH /:id/senses/:senseId`). */
+export async function updateSenseAction(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const vocabularyId = String(formData.get("vocabularyId") ?? "");
+  const senseId = String(formData.get("senseId") ?? "");
+  if (!vocabularyId || !senseId) return { ok: false, error: "Missing ids." };
+
+  const parsed = senseSchema.safeParse({
+    gloss: formData.get("gloss"),
+    definition: formData.get("definition"),
+    imageUrl: formData.get("imageUrl"),
+  });
+  if (!parsed.success) return { ok: false, error: firstIssue(parsed.error) };
+
+  const v = parsed.data;
+  const res = await authedRequest(
+    `/v1/admin/vocabularies/${vocabularyId}/senses/${senseId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        gloss: v.gloss ?? null,
+        definition: v.definition ?? null,
+        imageUrl: v.imageUrl ?? null,
+      }),
+    },
+  );
+
+  if (!res.ok) {
+    if (res.status === 401) redirect("/login");
+    return { ok: false, error: firstMessage(res.error) ?? "Could not save the sense." };
+  }
+
+  revalidatePath(editorPath(vocabularyId));
+  return { ok: true };
+}
+
+/** Delete a sense (`DELETE /:id/senses/:senseId`). Remaining senses recompact. */
+export async function deleteSenseAction(formData: FormData): Promise<void> {
+  const vocabularyId = String(formData.get("vocabularyId") ?? "");
+  const senseId = String(formData.get("senseId") ?? "");
+  if (!vocabularyId || !senseId) return;
+
+  const res = await authedRequest(
+    `/v1/admin/vocabularies/${vocabularyId}/senses/${senseId}`,
+    { method: "DELETE" },
+  );
+  if (res.status === 401) redirect("/login");
+
+  revalidatePath(editorPath(vocabularyId));
+}
+
+/** Reorder senses by posting the full permutation of ids (`PUT /:id/senses/reorder`). */
+export async function reorderSensesAction(formData: FormData): Promise<void> {
+  const vocabularyId = String(formData.get("vocabularyId") ?? "");
+  const senseIds = formData.getAll("senseIds").map(String);
+  if (!vocabularyId || senseIds.length === 0) return;
+
+  const res = await authedRequest(
+    `/v1/admin/vocabularies/${vocabularyId}/senses/reorder`,
+    { method: "PUT", body: JSON.stringify({ senseIds }) },
+  );
+  if (res.status === 401) redirect("/login");
+
+  revalidatePath(editorPath(vocabularyId));
+}
+
+// ── Translations ────────────────────────────────────────────────────────────
+
+/** Add a translation to a sense (`POST …/translations`). */
+export async function addTranslationAction(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const vocabularyId = String(formData.get("vocabularyId") ?? "");
+  const senseId = String(formData.get("senseId") ?? "");
+  if (!vocabularyId || !senseId) return { ok: false, error: "Missing ids." };
+
+  const parsed = translationSchema.safeParse({
+    language: formData.get("language"),
+    translation: formData.get("translation"),
+    note: formData.get("note"),
+  });
+  if (!parsed.success) return { ok: false, error: firstIssue(parsed.error) };
+
+  const v = parsed.data;
+  const res = await authedRequest(
+    `/v1/admin/vocabularies/${vocabularyId}/senses/${senseId}/translations`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        language: v.language,
+        translation: v.translation,
+        ...(v.note ? { note: v.note } : {}),
+      }),
+    },
+  );
+
+  if (!res.ok) {
+    if (res.status === 401) redirect("/login");
+    if (res.status === 409) {
+      return { ok: false, error: "That translation already exists for this sense." };
+    }
+    return { ok: false, error: firstMessage(res.error) ?? "Could not add the translation." };
+  }
+
+  revalidatePath(editorPath(vocabularyId));
+  return { ok: true };
+}
+
+/** Delete a translation (`DELETE …/translations/:translationId`). */
+export async function deleteTranslationAction(formData: FormData): Promise<void> {
+  const vocabularyId = String(formData.get("vocabularyId") ?? "");
+  const senseId = String(formData.get("senseId") ?? "");
+  const translationId = String(formData.get("translationId") ?? "");
+  if (!vocabularyId || !senseId || !translationId) return;
+
+  const res = await authedRequest(
+    `/v1/admin/vocabularies/${vocabularyId}/senses/${senseId}/translations/${translationId}`,
+    { method: "DELETE" },
+  );
+  if (res.status === 401) redirect("/login");
+
+  revalidatePath(editorPath(vocabularyId));
+}
+
+// ── Examples ────────────────────────────────────────────────────────────────
+
+/** Add an example to a sense (`POST …/examples`). */
+export async function addExampleAction(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const vocabularyId = String(formData.get("vocabularyId") ?? "");
+  const senseId = String(formData.get("senseId") ?? "");
+  if (!vocabularyId || !senseId) return { ok: false, error: "Missing ids." };
+
+  const parsed = exampleSchema.safeParse({
+    sentence: formData.get("sentence"),
+    translation: formData.get("translation"),
+    source: formData.get("source"),
+  });
+  if (!parsed.success) return { ok: false, error: firstIssue(parsed.error) };
+
+  const v = parsed.data;
+  const res = await authedRequest(
+    `/v1/admin/vocabularies/${vocabularyId}/senses/${senseId}/examples`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        sentence: v.sentence,
+        ...(v.translation ? { translation: v.translation } : {}),
+        ...(v.source ? { source: v.source } : {}),
+      }),
+    },
+  );
+
+  if (!res.ok) {
+    if (res.status === 401) redirect("/login");
+    return { ok: false, error: firstMessage(res.error) ?? "Could not add the example." };
+  }
+
+  revalidatePath(editorPath(vocabularyId));
+  return { ok: true };
+}
+
+/** Delete an example (`DELETE …/examples/:exampleId`). */
+export async function deleteExampleAction(formData: FormData): Promise<void> {
+  const vocabularyId = String(formData.get("vocabularyId") ?? "");
+  const senseId = String(formData.get("senseId") ?? "");
+  const exampleId = String(formData.get("exampleId") ?? "");
+  if (!vocabularyId || !senseId || !exampleId) return;
+
+  const res = await authedRequest(
+    `/v1/admin/vocabularies/${vocabularyId}/senses/${senseId}/examples/${exampleId}`,
+    { method: "DELETE" },
+  );
+  if (res.status === 401) redirect("/login");
+
+  revalidatePath(editorPath(vocabularyId));
 }
