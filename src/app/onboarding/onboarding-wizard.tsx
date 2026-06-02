@@ -24,18 +24,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import type { CefrLevel } from "@/lib/auth/types";
-
-const LANGUAGES = [
-  { value: "en", label: "English" },
-  { value: "vi", label: "Tiếng Việt" },
-  { value: "es", label: "Español" },
-  { value: "fr", label: "Français" },
-  { value: "de", label: "Deutsch" },
-  { value: "ja", label: "日本語" },
-  { value: "ko", label: "한국어" },
-  { value: "zh", label: "中文" },
-  { value: "pt-BR", label: "Português (Brasil)" },
-] as const;
+import { LANGUAGES, languageLabel } from "@/lib/languages";
 
 const LEVELS: { value: CefrLevel; hint: string }[] = [
   { value: "A1", hint: "Beginner" },
@@ -59,7 +48,7 @@ function firstOf(value: number | readonly number[]): number {
 /** Render the selected language's label (Base UI Select.Value shows the raw value otherwise). */
 function renderLanguageValue(value: string | null): ReactNode {
   if (!value) return "Select language";
-  return LANGUAGES.find((lang) => lang.value === value)?.label ?? value;
+  return languageLabel(value);
 }
 
 export function OnboardingWizard() {

@@ -15,8 +15,13 @@ import {
   verifyEmailSchema,
 } from "@/lib/validations/auth";
 
-/** Where to send a user once authenticated, based on onboarding state. */
+/**
+ * Where to send a user once authenticated. Admins go straight to the admin
+ * surface (it doesn't depend on the learner onboarding flow); everyone else
+ * lands on their dashboard, or onboarding if they haven't completed it.
+ */
 function homeFor(user: UserResponse): string {
+  if (user.role === "admin") return "/admin";
   return user.isOnboarded ? "/dashboard" : "/onboarding";
 }
 

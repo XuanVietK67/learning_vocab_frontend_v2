@@ -4,12 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BookMarkedIcon,
-  GraduationCapIcon,
-  HomeIcon,
-  LayersIcon,
+  LayoutDashboardIcon,
   LogOutIcon,
   type LucideIcon,
-  ShieldIcon,
+  TagsIcon,
+  UsersIcon,
 } from "lucide-react";
 
 import { logoutAction } from "@/app/(auth)/actions";
@@ -26,13 +25,15 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { label: "Home", href: "/dashboard", icon: HomeIcon },
-  { label: "Learn", href: "/learn", icon: GraduationCapIcon },
-  { label: "Decks", href: "/decks", icon: LayersIcon, disabled: true },
-  { label: "Words", href: "/words", icon: BookMarkedIcon, disabled: true },
+  { label: "Overview", href: "/admin", icon: LayoutDashboardIcon },
+  { label: "Vocabulary", href: "/admin/vocabularies", icon: BookMarkedIcon },
+  { label: "Topics", href: "/admin/topics", icon: TagsIcon, disabled: true },
+  { label: "Users", href: "/admin/users", icon: UsersIcon, disabled: true },
 ];
 
+/** Exact match for the index route, prefix match for the rest. */
 function isActive(pathname: string, href: string): boolean {
+  if (href === "/admin") return pathname === "/admin";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -40,14 +41,17 @@ function initialOf(user: UserResponse): string {
   return (user.username || user.email).charAt(0).toUpperCase();
 }
 
-/** Persistent left navigation for authenticated pages (desktop only). */
-export function AppSidebar({ user }: { user: UserResponse }) {
+/** Persistent left navigation for admin pages (desktop only). */
+export function AdminSidebar({ user }: { user: UserResponse }) {
   const pathname = usePathname();
 
   return (
     <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-border/60 bg-sidebar px-3 py-4 lg:flex">
-      <Link href="/dashboard" className="px-2 py-1.5" aria-label="Dashboard">
+      <Link href="/admin" className="flex items-center gap-2 px-2 py-1.5">
         <BrandMark />
+        <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+          Admin
+        </span>
       </Link>
 
       <nav className="mt-4 flex flex-col gap-1">
@@ -91,18 +95,15 @@ export function AppSidebar({ user }: { user: UserResponse }) {
             </Link>
           );
         })}
-        {user.role === "admin" && (
-          <Link
-            href="/admin"
-            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
-          >
-            <ShieldIcon className="size-4 shrink-0" />
-            <span>Admin</span>
-          </Link>
-        )}
       </nav>
 
       <div className="mt-auto flex flex-col gap-1 border-t border-border/60 pt-3">
+        <Link
+          href="/dashboard"
+          className="rounded-lg px-2.5 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+        >
+          ← Back to app
+        </Link>
         <div className="flex items-center gap-2.5 px-2.5 py-1.5">
           <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-foreground">
             {initialOf(user)}
@@ -129,13 +130,16 @@ export function AppSidebar({ user }: { user: UserResponse }) {
 }
 
 /** Compact top bar shown in place of the sidebar on small screens. */
-export function AppMobileBar({ user }: { user: UserResponse }) {
+export function AdminMobileBar() {
   const pathname = usePathname();
 
   return (
     <header className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-2.5 lg:hidden">
-      <Link href="/dashboard" aria-label="Dashboard">
+      <Link href="/admin" className="flex items-center gap-2">
         <BrandMark />
+        <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+          Admin
+        </span>
       </Link>
       <nav className="flex items-center gap-1">
         {NAV.filter((item) => !item.disabled).map((item) => {
@@ -157,15 +161,6 @@ export function AppMobileBar({ user }: { user: UserResponse }) {
             </Link>
           );
         })}
-        {user.role === "admin" && (
-          <Link
-            href="/admin"
-            aria-label="Admin"
-            className="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-          >
-            <ShieldIcon className="size-5" />
-          </Link>
-        )}
         <form action={logoutAction}>
           <button
             type="submit"
