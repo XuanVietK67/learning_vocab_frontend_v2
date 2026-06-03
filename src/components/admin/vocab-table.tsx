@@ -1,8 +1,15 @@
 import Link from "next/link";
-import { Trash2Icon } from "lucide-react";
+import { PencilIcon, Trash2Icon } from "lucide-react";
 
 import { ConfirmButton } from "@/components/admin/confirm-button";
+import { buttonVariants } from "@/components/ui/button";
 import { deleteVocabularyAction } from "@/lib/admin/actions";
+import {
+  cefrTone,
+  sourceTone,
+  toneClass,
+  type BadgeTone,
+} from "@/lib/admin/badge-tones";
 import { cn } from "@/lib/utils";
 import type { AdminVocabulary } from "@/lib/admin/types";
 import { languageLabel } from "@/lib/languages";
@@ -11,16 +18,19 @@ const TH = "px-3 py-2 text-left text-xs font-medium text-muted-foreground";
 const TD = "px-3 py-2.5 align-middle";
 
 function Badge({
+  tone = "neutral",
   children,
   className,
 }: {
+  tone?: BadgeTone;
   children: React.ReactNode;
   className?: string;
 }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground",
+        "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset",
+        toneClass[tone],
         className,
       )}
     >
@@ -45,16 +55,14 @@ export function VocabTable({ items }: { items: AdminVocabulary[] }) {
             <th className={cn(TH, "text-right")}>Senses</th>
             <th className={TH}>Topics</th>
             <th className={TH}>Updated</th>
-            <th className={cn(TH, "text-right")}>
-              <span className="sr-only">Actions</span>
-            </th>
+            <th className={cn(TH, "text-right")}>Actions</th>
           </tr>
         </thead>
         <tbody>
           {items.map((vocab) => (
             <tr
               key={vocab.id}
-              className="border-b border-border/60 last:border-0 hover:bg-muted/30"
+              className="border-b border-border/60 even:bg-muted/20 last:border-0 hover:bg-muted/40"
             >
               <td className={cn(TD, "font-medium")}>
                 <Link
@@ -75,15 +83,27 @@ export function VocabTable({ items }: { items: AdminVocabulary[] }) {
               <td className={cn(TD, "text-muted-foreground")}>
                 {languageLabel(vocab.language)}
               </td>
-              <td className={TD}>{vocab.cefrLevel ? <Badge>{vocab.cefrLevel}</Badge> : "—"}</td>
               <td className={TD}>
-                <Badge>{vocab.source}</Badge>
+                {vocab.cefrLevel ? (
+                  <Badge tone={cefrTone(vocab.cefrLevel)}>{vocab.cefrLevel}</Badge>
+                ) : (
+                  "—"
+                )}
+              </td>
+              <td className={TD}>
+                <Badge tone={sourceTone(vocab.source)}>{vocab.source}</Badge>
               </td>
               <td className={TD}>
                 {vocab.isApproved ? (
-                  <Badge className="bg-primary/10 text-primary">Approved</Badge>
+                  <Badge tone="emerald">
+                    <span className="size-1.5 rounded-full bg-emerald-500" />
+                    Approved
+                  </Badge>
                 ) : (
-                  <Badge>Pending</Badge>
+                  <Badge tone="amber">
+                    <span className="size-1.5 rounded-full bg-amber-500" />
+                    Pending
+                  </Badge>
                 )}
               </td>
               <td className={cn(TD, "text-right tabular-nums")}>
@@ -98,17 +118,28 @@ export function VocabTable({ items }: { items: AdminVocabulary[] }) {
                 {vocab.updatedAt.slice(0, 10)}
               </td>
               <td className={cn(TD, "text-right")}>
-                <form action={deleteVocabularyAction}>
-                  <input type="hidden" name="id" value={vocab.id} />
-                  <ConfirmButton
-                    variant="ghost"
-                    size="icon-sm"
-                    message={`Delete "${vocab.lemma}"? This cannot be undone.`}
-                    aria-label={`Delete ${vocab.lemma}`}
+                <div className="flex items-center justify-end gap-1">
+                  <Link
+                    href={`/admin/vocabularies/${vocab.id}`}
+                    className={cn(
+                      buttonVariants({ variant: "ghost", size: "icon-sm" }),
+                    )}
+                    aria-label={`Edit ${vocab.lemma}`}
                   >
-                    <Trash2Icon className="text-muted-foreground" />
-                  </ConfirmButton>
-                </form>
+                    <PencilIcon className="text-muted-foreground" />
+                  </Link>
+                  <form action={deleteVocabularyAction}>
+                    <input type="hidden" name="id" value={vocab.id} />
+                    <ConfirmButton
+                      variant="ghost"
+                      size="icon-sm"
+                      message={`Delete "${vocab.lemma}"? This cannot be undone.`}
+                      aria-label={`Delete ${vocab.lemma}`}
+                    >
+                      <Trash2Icon className="text-muted-foreground" />
+                    </ConfirmButton>
+                  </form>
+                </div>
               </td>
             </tr>
           ))}
