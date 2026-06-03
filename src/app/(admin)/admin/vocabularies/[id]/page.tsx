@@ -15,19 +15,10 @@ import {
 } from "@/lib/admin/actions";
 import { getTopics } from "@/lib/admin/topics";
 import { getVocabularyDetail } from "@/lib/admin/vocabularies";
-import { languageLabel } from "@/lib/languages";
 
 export const metadata: Metadata = {
   title: "Edit vocabulary",
 };
-
-function Badge({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
-      {children}
-    </span>
-  );
-}
 
 export default async function EditVocabularyPage({
   params,
@@ -55,34 +46,19 @@ export default async function EditVocabularyPage({
         Vocabulary
       </Link>
 
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="font-heading text-2xl font-semibold tracking-tight">
-            {vocab.lemma}
-          </h1>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge>{vocab.partOfSpeech}</Badge>
-            <Badge>{languageLabel(vocab.language)}</Badge>
-            {vocab.cefrLevel && <Badge>{vocab.cefrLevel}</Badge>}
-            <Badge>{vocab.source}</Badge>
-          </div>
-        </div>
-        <form action={deleteVocabularyAction}>
-          <input type="hidden" name="id" value={vocab.id} />
-          <ConfirmButton message={`Delete "${vocab.lemma}"? This cannot be undone.`}>
-            Delete word
-          </ConfirmButton>
-        </form>
-      </header>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Details</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <VocabFieldsForm vocab={vocab} />
-        </CardContent>
-      </Card>
+      <VocabFieldsForm
+        vocab={vocab}
+        deleteSlot={
+          <form action={deleteVocabularyAction}>
+            <input type="hidden" name="id" value={vocab.id} />
+            <ConfirmButton
+              message={`Delete "${vocab.lemma}"? This cannot be undone.`}
+            >
+              Delete word
+            </ConfirmButton>
+          </form>
+        }
+      />
 
       <Card>
         <CardHeader>
