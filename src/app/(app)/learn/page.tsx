@@ -1,49 +1,35 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { GraduationCapIcon } from "lucide-react";
+import { redirect } from "next/navigation";
 
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { getTopics } from "@/lib/admin/topics";
+import { getMyDecks } from "@/lib/me/decks";
+import { sessionModeSchema } from "@/lib/validations/learn";
+import { DeckPicker } from "./deck-picker";
+import { SessionRunner } from "./session-runner";
+import { TopicPicker } from "./topic-picker";
 
 export const metadata: Metadata = {
   title: "Learn",
 };
 
-const MODE_LABELS: Record<string, string> = {
-  daily: "Daily session",
-  review: "Review session",
-  topic: "Topic session",
-  deck: "Deck session",
-};
-
 export default async function LearnPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string }>;
+  searchParams: Promise<{ mode?: string; topicSlug?: string; deckId?: string }>;
 }) {
-  const { mode } = await searchParams;
-  const label = (mode && MODE_LABELS[mode]) ?? "Learning sessions";
+  const { mode, topicSlug, deckId } = await searchParams;
 
-  return (
-    <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-6 px-4 py-16 text-center">
-      <span className="flex size-12 items-center justify-center rounded-xl bg-muted text-foreground">
-        <GraduationCapIcon className="size-6" />
-      </span>
-      <div className="flex flex-col gap-2">
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">
-          {label}
-        </h1>
-        <p className="text-muted-foreground">
-          The learning experience is coming next — this is where your signed,
-          context-anchored questions will appear.
-        </p>
-      </div>
-      <Link
-        href="/dashboard"
-        className={cn(buttonVariants({ variant: "outline" }), "h-10 px-5")}
-      >
-        Back to dashboard
-      </Link>
-    </div>
-  );
+  const parsedMode = sessionModeSchema.safeParse(mode);
+  if (!parsedMode.success) redirect("/dashboard");
+  const selectedMode = parsedMode.data;
+
+  // Topic/deck modes need a target first — show the picker until one is chosen.
+  if (selectedMode === "topic" && !topicSlug) {
+    return <TopicPicker topics={await getTopics()} />;
+  }
+  if (selectedMode === "deck" && !deckId) {
+    return <DeckPicker decks={await getMyDecks()} />;
+  }
+
+  return <SessionRunner mode={selectedMode} topicSlug={topicSlug} deckId={deckId} />;
 }

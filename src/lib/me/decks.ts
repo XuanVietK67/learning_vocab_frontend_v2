@@ -20,3 +20,20 @@ export const getSuggestedDecks = cache(async (): Promise<DeckSummary[]> => {
   );
   return res.ok && res.data ? res.data : [];
 });
+
+/**
+ * Render-safe read of the caller's own decks (`GET /v1/me/decks`, newest
+ * first). Returns the first page's summaries — enough to populate the deck
+ * picker on the learn screen. Returns `[]` when unauthenticated or on error.
+ */
+export const getMyDecks = cache(async (): Promise<DeckSummary[]> => {
+  const token = await getAccessToken();
+  if (!token) return [];
+
+  const res = await apiRequest<{ data: DeckSummary[] }>(
+    "/v1/me/decks?limit=100",
+    { method: "GET" },
+    token,
+  );
+  return res.ok && res.data ? res.data.data : [];
+});
