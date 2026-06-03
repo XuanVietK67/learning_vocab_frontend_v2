@@ -8,21 +8,15 @@
  */
 import { cookies } from "next/headers";
 
+import {
+  ACCESS_MAX_AGE,
+  ACCESS_TOKEN,
+  baseCookie,
+  REFRESH_MAX_AGE,
+  REFRESH_TOKEN,
+  USER_ID,
+} from "./cookies";
 import type { AuthResponse } from "./types";
-
-const ACCESS_TOKEN = "access_token";
-const REFRESH_TOKEN = "refresh_token";
-const USER_ID = "user_id";
-
-const ACCESS_MAX_AGE = 60 * 15; // 15 minutes
-const REFRESH_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
-
-const baseCookie = {
-  httpOnly: true,
-  sameSite: "lax" as const,
-  secure: process.env.NODE_ENV === "production",
-  path: "/",
-};
 
 /** Persist a full auth response (after login/register/refresh). */
 export async function setSession(auth: AuthResponse): Promise<void> {
