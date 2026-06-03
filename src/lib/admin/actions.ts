@@ -22,31 +22,32 @@ function editorPath(vocabularyId: string): string {
   return `${LIST_PATH}/${vocabularyId}`;
 }
 
-/** First Zod issue message, for surfacing a single inline error. */
+/** First Zod issue message, prefixed with its path, for an inline error. */
 function firstIssue(error: ZodError): string {
-  return error.issues[0]?.message ?? "Please check the form and try again.";
+  const issue = error.issues[0];
+  if (!issue) return "Please check the form and try again.";
+  const where = issue.path.length ? `${issue.path.join(".")}: ` : "";
+  return `${where}${issue.message}`;
 }
 
 /**
- * Create a system vocabulary with one seed sense, then jump to its editor.
- * `409` means the (language, lemma, partOfSpeech) natural key already exists.
+ * Create a system vocabulary with its full sense tree (multiple senses, each
+ * with translations, examples ≥2, and an optional image) in one atomic request,
+ * then jump to its editor. The client posts the draft as a single JSON `payload`
+ * field. `409` means the (language, lemma, partOfSpeech) natural key exists.
  */
 export async function createVocabularyAction(
   _prev: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
-  const parsed = createVocabularySchema.safeParse({
-    language: formData.get("language"),
-    lemma: formData.get("lemma"),
-    partOfSpeech: formData.get("partOfSpeech"),
-    ipa: formData.get("ipa"),
-    cefrLevel: formData.get("cefrLevel") || undefined,
-    gloss: formData.get("gloss"),
-    definition: formData.get("definition"),
-    translationLang: formData.get("translationLang"),
-    translation: formData.get("translation"),
-    exampleSentence: formData.get("exampleSentence"),
-  });
+  let raw: unknown;
+  try {
+    raw = JSON.parse(String(formData.get("payload") ?? "null"));
+  } catch {
+    return { ok: false, error: "Could not read the form. Please try again." };
+  }
+
+  const parsed = createVocabularySchema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: firstIssue(parsed.error) };
 
   const v = parsed.data;
@@ -56,17 +57,28 @@ export async function createVocabularyAction(
     partOfSpeech: v.partOfSpeech,
     ...(v.ipa ? { ipa: v.ipa } : {}),
     ...(v.cefrLevel ? { cefrLevel: v.cefrLevel } : {}),
-    senses: [
-      {
-        ...(v.gloss ? { gloss: v.gloss } : {}),
-        ...(v.definition ? { definition: v.definition } : {}),
-        translations:
-          v.translation && v.translationLang
-            ? [{ language: v.translationLang, translation: v.translation }]
-            : [],
-        examples: v.exampleSentence ? [{ sentence: v.exampleSentence }] : [],
-      },
-    ],
+    ...(v.frequencyRank !== undefined ? { frequencyRank: v.frequencyRank } : {}),
+    ...(v.topics.length ? { topics: v.topics } : {}),
+    senses: v.senses.map((s) => ({
+      ...(s.gloss ? { gloss: s.gloss } : {}),
+      ...(s.definition ? { definition: s.definition } : {}),
+      ...(s.imageUrl ? { imageUrl: s.imageUrl } : {}),
+      ...(s.synonyms.length ? { synonyms: s.synonyms } : {}),
+      ...(s.antonyms.length ? { antonyms: s.antonyms } : {}),
+      ...(s.translations.length
+        ? {
+            translations: s.translations.map((t) => ({
+              language: t.language,
+              translation: t.translation,
+              ...(t.note ? { note: t.note } : {}),
+            })),
+          }
+        : {}),
+      examples: s.examples.map((e) => ({
+        sentence: e.sentence,
+        ...(e.translation ? { translation: e.translation } : {}),
+      })),
+    })),
   };
 
   const res = await authedRequest<{ id: string }>("/v1/admin/vocabularies", {
