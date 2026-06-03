@@ -5,7 +5,10 @@
  */
 import { z } from "zod";
 
+import { PARTS_OF_SPEECH } from "@/lib/admin/types";
+
 const LANGUAGE_RE = /^[a-z]{2}(-[A-Z]{2})?$/; // ISO 639-1, optional region
+const TOPIC_SLUG_RE = /^[a-z0-9-]+$/;
 const CEFR = ["A1", "A2", "B1", "B2", "C1", "C2"] as const;
 
 /** Treat empty/whitespace-only form values as "absent". */
@@ -17,36 +20,61 @@ const optionalText = (max: number) =>
     .optional()
     .transform((v) => (v ? v : undefined));
 
+/** A translation row inside a sense (`senses[].translations[]`). */
+const senseTranslationSchema = z.object({
+  language: z.string().regex(LANGUAGE_RE, "Use a valid language code."),
+  translation: z.string().trim().min(1, "Translation is required.").max(255),
+  note: optionalText(2000),
+});
+
+/** An example row inside a sense (`senses[].examples[]`). */
+const senseExampleSchema = z.object({
+  sentence: z.string().trim().min(1, "Example sentence is required.").max(1000),
+  translation: optionalText(1000),
+});
+
 /**
- * Create a new system vocabulary with a single seed sense. The richer sense
- * tree (extra senses, multiple translations/examples) is built afterwards in
- * the detail editor via the sub-resource endpoints.
+ * One sense in the create payload, with its own image, synonyms/antonyms,
+ * translations, and examples. Mirrors the `senses[]` rules in
+ * docs/admin_create_vocabulary.md — notably the **2-example minimum** (the
+ * extra example is held out as a hidden test sentence by the learning module).
  */
-export const createVocabularySchema = z
-  .object({
-    language: z.string().regex(LANGUAGE_RE, "Choose a language."),
-    lemma: z.string().trim().min(1, "Lemma is required.").max(128),
-    partOfSpeech: z
-      .string()
-      .trim()
-      .min(1, "Part of speech is required.")
-      .max(32),
-    ipa: optionalText(64),
-    cefrLevel: z.enum(CEFR).optional(),
-    gloss: optionalText(128),
-    definition: optionalText(512),
-    translationLang: z
-      .string()
-      .regex(LANGUAGE_RE, "Use a valid language code.")
-      .optional()
-      .or(z.literal("").transform(() => undefined)),
-    translation: optionalText(256),
-    exampleSentence: optionalText(512),
-  })
-  .refine((v) => !v.translation || Boolean(v.translationLang), {
-    path: ["translationLang"],
-    message: "Pick a language for the translation.",
-  });
+const senseDraftSchema = z.object({
+  gloss: optionalText(128),
+  definition: optionalText(2000),
+  imageUrl: z
+    .union([z.literal(""), z.url("Enter a valid image URL.").max(512)])
+    .optional()
+    .transform((v) => (v ? v : undefined)),
+  synonyms: z.array(z.string().trim().min(1).max(64)).max(32).default([]),
+  antonyms: z.array(z.string().trim().min(1).max(64)).max(32).default([]),
+  translations: z.array(senseTranslationSchema).max(16).default([]),
+  examples: z
+    .array(senseExampleSchema)
+    .min(2, "Each sense needs at least 2 examples.")
+    .max(16),
+});
+
+/**
+ * Create a new system vocabulary with its full sense tree in one atomic request
+ * (`POST /v1/admin/vocabularies`). The client builds the nested draft, serializes
+ * it to JSON, and the Server Action re-validates with this schema before sending.
+ */
+export const createVocabularySchema = z.object({
+  language: z.string().regex(LANGUAGE_RE, "Choose a language."),
+  lemma: z.string().trim().min(1, "Lemma is required.").max(128),
+  partOfSpeech: z.enum(PARTS_OF_SPEECH, {
+    message: "Choose a part of speech.",
+  }),
+  ipa: optionalText(128),
+  cefrLevel: z.enum(CEFR).optional(),
+  frequencyRank: z.number().int().min(0).optional(),
+  topics: z
+    .array(z.string().regex(TOPIC_SLUG_RE, "Invalid topic slug."))
+    .max(32)
+    .default([]),
+  senses: z.array(senseDraftSchema).min(1, "Add at least one sense.").max(16),
+});
 
 /** Patch the top-level fields of an existing vocabulary (`PATCH /:id`). */
 export const vocabularyFieldsSchema = z.object({

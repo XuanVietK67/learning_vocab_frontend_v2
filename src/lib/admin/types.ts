@@ -21,6 +21,22 @@ export const CEFR_LEVELS: readonly CefrLevel[] = [
   "C2",
 ];
 
+/** Allowed `partOfSpeech` values (`POST /v1/admin/vocabularies` enum). */
+export const PARTS_OF_SPEECH = [
+  "noun",
+  "verb",
+  "adjective",
+  "adverb",
+  "pronoun",
+  "preposition",
+  "conjunction",
+  "interjection",
+  "phrase",
+  "other",
+] as const;
+
+export type PartOfSpeech = (typeof PARTS_OF_SPEECH)[number];
+
 /** Standard `{ data, page, limit, total }` envelope from list endpoints. */
 export interface Paginated<T> {
   data: T[];
