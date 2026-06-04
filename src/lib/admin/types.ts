@@ -92,6 +92,10 @@ export interface AdminVocabulary {
   frequencyRank: number | null;
   audioUrl: string | null;
   source: VocabSource;
+  /** Representative thumbnail — `images[0] ?? null`. */
+  imageUrl: string | null;
+  /** All distinct sense images, in `senseOrder`. Empty when none. */
+  images: string[];
   visibility: VocabVisibility;
   isApproved: boolean;
   createdByUserId: string | null;
