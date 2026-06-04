@@ -1,19 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
 import type { SentenceBuildPrompt } from "@/lib/me/learn/types";
-import type { BaseQuestionProps } from "./types";
-import { CheckButton } from "./_shared/check-button";
+import type { QuizQuestionProps } from "./types";
 
-type Props = BaseQuestionProps & { prompt: SentenceBuildPrompt };
+type Props = QuizQuestionProps & { prompt: SentenceBuildPrompt };
 
 /**
  * Assemble the target sentence from shuffled tokens. Tracks placement by token
- * index (tokens can repeat) and submits the space-joined result.
+ * index (tokens can repeat) and reports the space-joined result once every token
+ * is placed.
  */
-export function SentenceBuildQuestion({ prompt, disabled, result, onSubmit }: Props) {
+export function SentenceBuildQuestion({ prompt, disabled, result, onAnswerChange }: Props) {
   const { tokens } = prompt;
   const [placed, setPlaced] = useState<number[]>([]);
   const revealed = result !== null;
@@ -21,6 +21,10 @@ export function SentenceBuildQuestion({ prompt, disabled, result, onSubmit }: Pr
   const inBank = tokens.map((_, i) => i).filter((i) => !placed.includes(i));
   const allPlaced = placed.length === tokens.length;
   const answer = placed.map((i) => tokens[i]).join(" ");
+
+  useEffect(() => {
+    onAnswerChange(allPlaced ? answer : null);
+  }, [placed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function place(index: number) {
     if (disabled || revealed) return;
@@ -33,9 +37,9 @@ export function SentenceBuildQuestion({ prompt, disabled, result, onSubmit }: Pr
 
   return (
     <div className="flex flex-col gap-5">
-      <p className="text-sm text-muted-foreground">
-        Build this sentence:
-        <span className="mt-1 block text-base font-medium text-foreground text-balance">
+      <p className="text-center text-sm text-muted-foreground">
+        Arrange the words into the right order.
+        <span className="mt-1 block text-base font-semibold text-foreground text-balance">
           {prompt.translation}
         </span>
       </p>
@@ -43,14 +47,16 @@ export function SentenceBuildQuestion({ prompt, disabled, result, onSubmit }: Pr
       {/* Answer tray */}
       <div
         className={cn(
-          "flex min-h-14 flex-wrap content-start gap-2 rounded-xl border border-dashed p-3",
-          revealed && result.correct && "border-green-600/50 bg-green-600/5",
-          revealed && !result.correct && "border-destructive/50 bg-destructive/5",
-          !revealed && "border-border bg-muted/30",
+          "flex min-h-18.5 flex-wrap content-start items-center gap-2 rounded-2xl border-2 border-dashed p-3",
+          revealed && result.correct && "border-(--ok) border-solid bg-(--ok-bg)",
+          revealed && !result.correct && "border-(--bad) border-solid bg-(--bad-bg)",
+          !revealed && "border-border bg-[#fafbfc]",
         )}
       >
         {placed.length === 0 && (
-          <span className="text-sm text-muted-foreground">Tap words to build the sentence…</span>
+          <span className="m-auto text-sm font-semibold text-muted-foreground">
+            Tap words to build the sentence…
+          </span>
         )}
         {placed.map((tokenIndex) => (
           <button
@@ -58,7 +64,7 @@ export function SentenceBuildQuestion({ prompt, disabled, result, onSubmit }: Pr
             type="button"
             disabled={disabled || revealed}
             onClick={() => remove(tokenIndex)}
-            className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm shadow-sm disabled:cursor-default"
+            className="rounded-xl border-[1.5px] border-primary bg-secondary px-3.5 py-2 text-base font-bold text-(--primary-d) transition active:translate-y-0.5 disabled:cursor-default"
           >
             {tokens[tokenIndex]}
           </button>
@@ -67,14 +73,14 @@ export function SentenceBuildQuestion({ prompt, disabled, result, onSubmit }: Pr
 
       {/* Token bank */}
       {!revealed && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex min-h-12 flex-wrap gap-2">
           {inBank.map((tokenIndex) => (
             <button
               key={tokenIndex}
               type="button"
               disabled={disabled}
               onClick={() => place(tokenIndex)}
-              className="rounded-lg border border-border bg-muted px-3 py-1.5 text-sm transition-colors hover:bg-muted/70"
+              className="rounded-xl border-[1.5px] border-border bg-card px-3.5 py-2 text-base font-bold text-foreground shadow-[0_2px_0_var(--line)] transition hover:border-primary/45 active:translate-y-0.5 active:shadow-none"
             >
               {tokens[tokenIndex]}
             </button>
@@ -83,16 +89,9 @@ export function SentenceBuildQuestion({ prompt, disabled, result, onSubmit }: Pr
       )}
 
       {revealed && !result.correct && (
-        <p className="text-sm text-muted-foreground">
-          Answer: <span className="font-medium text-foreground">{result.correctAnswer}</span>
+        <p className="text-center text-sm text-muted-foreground">
+          Answer: <b className="text-foreground">{result.correctAnswer}</b>
         </p>
-      )}
-
-      {!revealed && (
-        <CheckButton
-          disabled={disabled || !allPlaced}
-          onClick={() => onSubmit(answer)}
-        />
       )}
     </div>
   );

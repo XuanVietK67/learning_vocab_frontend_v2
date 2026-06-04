@@ -2,7 +2,7 @@
 
 import type * as React from "react";
 
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface CheckButtonProps {
   disabled: boolean;
@@ -11,7 +11,7 @@ interface CheckButtonProps {
   children?: React.ReactNode;
 }
 
-/** Full-width primary action shared by the interactive question types. */
+/** Full-width mint primary action with the design's pressable drop-shadow. */
 export function CheckButton({
   disabled,
   onClick,
@@ -19,13 +19,18 @@ export function CheckButton({
   children = "Check",
 }: CheckButtonProps) {
   return (
-    <Button
+    <button
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className="h-11 w-full text-base"
+      className={cn(
+        "w-full rounded-[14px] px-6 py-3.5 text-base font-bold transition active:translate-y-[3px]",
+        disabled
+          ? "cursor-not-allowed bg-[#e7e9ef] text-[#b3bac8] shadow-[0_4px_0_#d7dbe4]"
+          : "bg-primary text-primary-foreground shadow-[0_4px_0_var(--primary-d)] hover:brightness-[1.04] active:shadow-[0_1px_0_var(--primary-d)]",
+      )}
     >
       {children}
-    </Button>
+    </button>
   );
 }

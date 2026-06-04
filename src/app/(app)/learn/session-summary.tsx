@@ -1,44 +1,91 @@
 import Link from "next/link";
-import { PartyPopperIcon } from "lucide-react";
+import { XIcon } from "lucide-react";
 
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface SessionSummaryProps {
   answered: number;
   correct: number;
+  bestStreak: number;
   /** Restart the same mode (re-runs the session start). */
   onStudyAgain: () => void;
+  /** Provided when opened mid-session via the Progress button (adds a close X). */
+  onClose?: () => void;
 }
 
-/** End-of-session recap with the run's accuracy and next-step actions. */
-export function SessionSummary({ answered, correct, onStudyAgain }: SessionSummaryProps) {
+/**
+ * Progress / end-of-session recap, rendered inside a modal overlay. Shows
+ * accuracy, score, and best streak; reused for the mid-session peek (with a
+ * close affordance) and the terminal summary.
+ */
+export function SessionSummary({
+  answered,
+  correct,
+  bestStreak,
+  onStudyAgain,
+  onClose,
+}: SessionSummaryProps) {
   const accuracy = answered > 0 ? Math.round((correct / answered) * 100) : 0;
+  const burst = accuracy >= 80 ? "🎉" : accuracy >= 50 ? "👏" : "💪";
 
   return (
-    <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-6 px-4 py-16 text-center">
-      <span className="flex size-12 items-center justify-center rounded-xl bg-muted text-foreground">
-        <PartyPopperIcon className="size-6" />
-      </span>
-      <div className="flex flex-col gap-2">
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">Session complete</h1>
-        <p className="text-muted-foreground">
-          You answered {answered} {answered === 1 ? "question" : "questions"} with {accuracy}%
-          accuracy.
-        </p>
-      </div>
-      <div className="flex flex-wrap items-center justify-center gap-3">
+    <div className="relative w-full max-w-115 rounded-3xl bg-card p-9 text-center shadow-[0_30px_80px_-24px_rgba(0,0,0,0.4)]">
+      {onClose && (
         <button
           type="button"
-          onClick={onStudyAgain}
-          className={cn(buttonVariants({ variant: "default" }), "h-10 px-5")}
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute right-4 top-4 grid size-10 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted"
         >
-          Study again
+          <XIcon className="size-5" />
         </button>
-        <Link href="/dashboard" className={cn(buttonVariants({ variant: "outline" }), "h-10 px-5")}>
-          Back to dashboard
-        </Link>
+      )}
+
+      <div className="learn-burst text-[56px] leading-none">{burst}</div>
+      <h1 className="mt-2 text-2xl font-extrabold tracking-tight">Your progress</h1>
+      <p className="mt-1 text-[15px] text-muted-foreground">
+        You&apos;ve answered {answered} {answered === 1 ? "card" : "cards"} this session.
+      </p>
+
+      <div className="mt-6 flex gap-3">
+        <Stat value={`${accuracy}%`} label="Accuracy" />
+        <Stat value={`${correct}/${answered}`} label="Correct" />
+        <Stat value={`${bestStreak}🔥`} label="Best streak" fire />
       </div>
+
+      <div className="mt-7 flex gap-2.5">
+        {onClose ? (
+          <button
+            type="button"
+            onClick={onClose}
+            className={cn(buttonVariants({ variant: "outline" }), "h-11 flex-1 text-base")}
+          >
+            Keep studying
+          </button>
+        ) : (
+          <Link
+            href="/dashboard"
+            className={cn(buttonVariants({ variant: "outline" }), "h-11 flex-1 text-base")}
+          >
+            Back to dashboard
+          </Link>
+        )}
+        <Button type="button" onClick={onStudyAgain} className="h-11 flex-1 text-base">
+          Study again
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function Stat({ value, label, fire = false }: { value: string; label: string; fire?: boolean }) {
+  return (
+    <div className="flex-1 rounded-2xl bg-muted px-2 py-4">
+      <div className={cn("text-2xl font-extrabold", fire ? "text-amber-500" : "text-(--primary-d)")}>
+        {value}
+      </div>
+      <div className="mt-1 text-xs font-bold text-muted-foreground">{label}</div>
     </div>
   );
 }
