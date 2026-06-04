@@ -1,19 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { ImageIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import {
-  FLASHCARD_RATINGS,
-  type FlashcardPrompt,
-  type FlashcardRating,
-} from "@/lib/me/learn/types";
-import type { BaseQuestionProps } from "./types";
+import { FLASHCARD_RATINGS, type FlashcardRating } from "@/lib/me/learn/types";
+import type { FlashcardQuestionProps } from "./types";
+import type { FlashcardPrompt } from "@/lib/me/learn/types";
 import { AudioButton } from "./_shared/audio-button";
+import { useLearnSettings } from "../_chrome/settings-context";
 
-type Props = BaseQuestionProps & { prompt: FlashcardPrompt };
+type Props = FlashcardQuestionProps & { prompt: FlashcardPrompt };
 
 const RATING_LABELS: Record<FlashcardRating, string> = {
   forgot: "Forgot",
@@ -23,66 +20,115 @@ const RATING_LABELS: Record<FlashcardRating, string> = {
 };
 
 const RATING_CLASSES: Record<FlashcardRating, string> = {
-  forgot: "border-destructive/40 text-destructive hover:bg-destructive/10",
-  hard: "border-amber-500/40 text-amber-600 hover:bg-amber-500/10 dark:text-amber-400",
+  forgot: "border-(--bad)/40 text-(--bad) hover:bg-(--bad-bg)",
+  hard: "border-amber-500/40 text-amber-600 hover:bg-amber-500/10",
   good: "border-border hover:bg-muted",
-  easy: "border-green-600/40 text-green-700 hover:bg-green-600/10 dark:text-green-400",
+  easy: "border-(--ok)/40 text-(--ok) hover:bg-(--ok-bg)",
 };
 
-/** Study card: reveal the word's meaning, then self-rate recall. */
+const TILE_PALETTE = ["#F26D8F", "#5B8DEF", "#23B79B", "#F6A33C", "#9B6BE8", "#13A97B"];
+
+function tileColor(word: string) {
+  let h = 0;
+  for (const c of word || "x") h = (h * 31 + c.charCodeAt(0)) % 997;
+  return TILE_PALETTE[h % TILE_PALETTE.length];
+}
+
+/** Study card: image tile + term, flip to the meaning, then self-rate recall. */
 export function FlashcardQuestion({ prompt, disabled, result, onSubmit }: Props) {
+  const settings = useLearnSettings();
   const [flipped, setFlipped] = useState(false);
   const revealed = result !== null || flipped;
+  const color = tileColor(prompt.lemma);
+
+  // Space/Enter toggles the reveal (ignored while typing elsewhere).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement | null)?.tagName?.toLowerCase();
+      if (tag === "input" || tag === "textarea") return;
+      if (e.key === " " || e.key === "Enter") {
+        e.preventDefault();
+        setFlipped((f) => !f);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card px-6 py-8 text-center">
-        <div className="flex items-center gap-3">
-          <h2 className="font-heading text-3xl font-semibold tracking-tight">
-            {prompt.lemma}
-          </h2>
-          {prompt.audioUrl && <AudioButton src={prompt.audioUrl} label="Play pronunciation" />}
-        </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          {prompt.ipa && <span>{prompt.ipa}</span>}
-          {prompt.partOfSpeech && <Badge variant="secondary">{prompt.partOfSpeech}</Badge>}
-        </div>
-
-        {!revealed && (
-          <p className="mt-2 text-sm text-muted-foreground">Tap reveal when you&apos;ve recalled it.</p>
-        )}
-
-        {revealed && (
-          <div className="mt-2 flex w-full flex-col gap-4 text-left">
-            {prompt.senses.map((sense, index) => (
-              <div key={index} className="flex flex-col gap-1 border-t border-border pt-3 first:border-t-0 first:pt-0">
-                {sense.gloss && <p className="font-medium">{sense.gloss}</p>}
-                {sense.definition && (
-                  <p className="text-sm text-muted-foreground">{sense.definition}</p>
+    <div className="flex flex-col items-center gap-5">
+      <button
+        type="button"
+        onClick={() => setFlipped((f) => !f)}
+        className="w-full max-w-[520px] cursor-pointer text-center"
+        aria-label={revealed ? "Hide meaning" : "Reveal meaning"}
+      >
+        {!revealed ? (
+          <div className="flex flex-col items-center gap-3.5">
+            {settings.showImage && (
+              <div
+                className="relative grid h-30 w-42 place-items-center rounded-[18px] shadow-[0_12px_26px_-10px_rgba(0,0,0,0.28)]"
+                style={{
+                  background: `linear-gradient(150deg, ${color}, color-mix(in oklab, ${color}, black 16%))`,
+                }}
+              >
+                <ImageIcon className="size-8 text-white/90" strokeWidth={1.7} />
+                {prompt.partOfSpeech && (
+                  <span className="absolute bottom-2 right-2 rounded-full bg-black/25 px-2 py-0.5 text-[10.5px] font-bold text-white backdrop-blur-sm">
+                    {prompt.partOfSpeech}
+                  </span>
                 )}
+              </div>
+            )}
+            <div className="text-[42px] font-bold leading-tight tracking-tight text-balance">
+              {prompt.lemma}
+            </div>
+            {settings.showPhonetic && prompt.ipa && (
+              <div className="text-lg italic text-muted-foreground">{prompt.ipa}</div>
+            )}
+            <div className="text-[13px] font-medium text-muted-foreground/70">Tap to reveal ↻</div>
+          </div>
+        ) : (
+          <div className="learn-anim-in flex flex-col gap-4 text-left">
+            {prompt.senses.map((sense, index) => (
+              <div
+                key={index}
+                className="flex flex-col gap-1 border-t border-border pt-3 first:border-t-0 first:pt-0"
+              >
                 {sense.translation && (
-                  <p className="text-sm">
-                    <span className="text-muted-foreground">Translation: </span>
+                  <p className="text-center text-2xl font-extrabold text-(--primary-d)">
                     {sense.translation}
                   </p>
                 )}
+                {sense.gloss && <p className="text-center font-semibold">{sense.gloss}</p>}
+                {sense.definition && (
+                  <p className="text-center text-base leading-relaxed text-foreground text-pretty">
+                    {sense.definition}
+                  </p>
+                )}
                 {sense.example && (
-                  <p className="mt-1 text-sm italic text-muted-foreground">
+                  <p className="text-center text-[15px] italic text-muted-foreground">
                     “{sense.example.sentence}”
                     {sense.example.translation && ` — ${sense.example.translation}`}
                   </p>
                 )}
                 {(sense.synonyms.length > 0 || sense.antonyms.length > 0) && (
-                  <div className="mt-1 flex flex-wrap gap-1.5">
+                  <div className="mt-1 flex flex-wrap justify-center gap-1.5">
                     {sense.synonyms.map((s) => (
-                      <Badge key={`syn-${s}`} variant="outline">
+                      <span
+                        key={`syn-${s}`}
+                        className="rounded-full bg-secondary px-2.5 py-1 text-xs font-bold text-secondary-foreground"
+                      >
                         {s}
-                      </Badge>
+                      </span>
                     ))}
                     {sense.antonyms.map((a) => (
-                      <Badge key={`ant-${a}`} variant="ghost">
+                      <span
+                        key={`ant-${a}`}
+                        className="rounded-full bg-muted px-2.5 py-1 text-xs font-bold text-muted-foreground"
+                      >
                         ≠ {a}
-                      </Badge>
+                      </span>
                     ))}
                   </div>
                 )}
@@ -90,35 +136,37 @@ export function FlashcardQuestion({ prompt, disabled, result, onSubmit }: Props)
             ))}
           </div>
         )}
-      </div>
+      </button>
 
-      {/* Interactive controls (hidden once graded — the runner shows Continue) */}
-      {result === null && !flipped && (
-        <Button
-          type="button"
-          variant="outline"
-          className="h-11 w-full text-base"
-          onClick={() => setFlipped(true)}
-        >
-          Reveal answer
-        </Button>
+      {/* Audio control */}
+      {prompt.audioUrl && (
+        <AudioButton
+          src={prompt.audioUrl}
+          autoPlay={settings.autoplay}
+          size="md"
+          variant="ghost"
+          label="Play pronunciation"
+        />
       )}
 
+      {/* Self-rating (only while still ungraded and revealed) */}
       {result === null && flipped && (
-        <div className="flex flex-col gap-2">
+        <div className="flex w-full flex-col gap-2">
           <p className="text-center text-sm text-muted-foreground">How well did you know it?</p>
           <div className="grid grid-cols-4 gap-2">
             {FLASHCARD_RATINGS.map((rating) => (
-              <Button
+              <button
                 key={rating}
                 type="button"
-                variant="outline"
                 disabled={disabled}
                 onClick={() => onSubmit(rating)}
-                className={cn("h-11 text-sm", RATING_CLASSES[rating])}
+                className={cn(
+                  "rounded-[14px] border-[1.5px] py-2.5 text-sm font-bold transition active:scale-[0.98] disabled:opacity-60",
+                  RATING_CLASSES[rating],
+                )}
               >
                 {RATING_LABELS[rating]}
-              </Button>
+              </button>
             ))}
           </div>
         </div>

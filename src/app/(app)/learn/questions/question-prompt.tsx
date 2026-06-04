@@ -13,32 +13,50 @@ interface QuestionPromptProps {
   item: SessionItem;
   disabled: boolean;
   result: AnswerResponse | null;
-  onSubmit: (userAnswer: string) => void;
+  /** Report the current answer for the card footer (gradable types). */
+  onAnswerChange: (answer: string | null) => void;
+  /** Self-rating submit (flashcards only). */
+  onSubmit: (rating: string) => void;
 }
 
 /**
  * Renders the right question component for `item.prompt.type`. Switching on the
- * discriminant narrows `item.prompt`, so each branch is fully typed.
+ * discriminant narrows `item.prompt`, so each branch is fully typed. The runner
+ * owns the Check/feedback footer for the gradable types via `onAnswerChange`.
  */
-export function QuestionPrompt({ item, disabled, result, onSubmit }: QuestionPromptProps) {
-  const base = { lemma: item.lemma, disabled, result, onSubmit };
-  const { prompt } = item;
+export function QuestionPrompt({
+  item,
+  disabled,
+  result,
+  onAnswerChange,
+  onSubmit,
+}: QuestionPromptProps) {
+  const { prompt, lemma } = item;
+  const quiz = { lemma, disabled, result, onAnswerChange };
 
   switch (prompt.type) {
     case "flashcard":
-      return <FlashcardQuestion prompt={prompt} {...base} />;
+      return (
+        <FlashcardQuestion
+          prompt={prompt}
+          lemma={lemma}
+          disabled={disabled}
+          result={result}
+          onSubmit={onSubmit}
+        />
+      );
     case "cloze_mcq":
-      return <ClozeMcqQuestion prompt={prompt} {...base} />;
+      return <ClozeMcqQuestion prompt={prompt} {...quiz} />;
     case "cloze_typing":
-      return <ClozeTypingQuestion prompt={prompt} {...base} />;
+      return <ClozeTypingQuestion prompt={prompt} {...quiz} />;
     case "meaning_in_context":
-      return <MeaningInContextQuestion prompt={prompt} {...base} />;
+      return <MeaningInContextQuestion prompt={prompt} {...quiz} />;
     case "sentence_build":
-      return <SentenceBuildQuestion prompt={prompt} {...base} />;
+      return <SentenceBuildQuestion prompt={prompt} {...quiz} />;
     case "sense_disambiguation":
-      return <SenseDisambiguationQuestion prompt={prompt} {...base} />;
+      return <SenseDisambiguationQuestion prompt={prompt} {...quiz} />;
     case "listening_cloze":
-      return <ListeningClozeQuestion prompt={prompt} {...base} />;
+      return <ListeningClozeQuestion prompt={prompt} {...quiz} />;
     default: {
       // Exhaustiveness guard — a new question type will surface here at compile time.
       const _exhaustive: never = prompt;

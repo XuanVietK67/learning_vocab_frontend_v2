@@ -5,13 +5,13 @@ interface HintChipProps {
   hint: string | null;
 }
 
-/** Small translation-hint chip shown under a cloze sentence. */
-export function HintChip({ hint }: HintChipProps) {
+/** Dashed translation-hint line shown under a cloze sentence. */
+export function HintChip({ hint }: { hint: HintChipProps["hint"] }) {
   if (!hint) return null;
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-sm text-muted-foreground">
-      <LightbulbIcon className="size-3.5" />
-      {hint}
-    </span>
+    <div className="mx-auto flex w-fit items-center gap-1.5 rounded-xl border border-dashed border-border bg-muted/40 px-3.5 py-2 text-center text-sm text-muted-foreground">
+      <LightbulbIcon className="size-4 shrink-0 text-amber-500" />
+      <span>{hint}</span>
+    </div>
   );
 }
