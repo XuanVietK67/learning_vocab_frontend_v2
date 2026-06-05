@@ -225,7 +225,7 @@ export interface AdminVocabularyFilters {
   topic?: string;
   q?: string;
   source?: VocabSource;
-  isApproved?: boolean;
+  isApproved?: boolean | string; // support "true"/"false" for URL params
   visibility?: VocabVisibility;
   createdByUserId?: string;
   translationLang?: string;

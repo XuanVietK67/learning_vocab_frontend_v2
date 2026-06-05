@@ -24,13 +24,26 @@ export default async function ReviewDraftsPage({
   const sp = await searchParams;
   const q = one(sp.q);
 
-  const result = await listAdminVocabularies({
+  const filters = {
     isApproved: false,
     q,
     limit: 100,
-    sortBy: "createdAt",
-    sortDir: "desc",
-  });
+    sortBy: "createdAt" as const,
+    sortDir: "desc" as const,
+  };
+  const result = await listAdminVocabularies(filters);
+
+  // ── DEBUG: review draft listing ──────────────────────────────────────────
+  console.log("[REVIEW DEBUG] filters sent:", filters);
+  console.log("[REVIEW DEBUG] total:", result.total, "returned:", result.data.length);
+  console.table(
+    result.data.map((d) => ({
+      lemma: d.lemma,
+      pos: d.partOfSpeech,
+      isApproved: d.isApproved,
+    })),
+  );
+  // ─────────────────────────────────────────────────────────────────────────
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-8 sm:px-6 lg:py-10">
