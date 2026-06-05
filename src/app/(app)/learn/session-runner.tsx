@@ -31,9 +31,14 @@ const TYPE_LABEL: Record<QuestionType, string> = {
   cloze_mcq: "Multiple choice",
   cloze_typing: "Type the word",
   meaning_in_context: "Meaning in context",
-  sentence_build: "Build the sentence",
   sense_disambiguation: "Word sense",
   listening_cloze: "Listening",
+  word_from_translation: "Pick the word",
+  translation_from_word: "Pick the meaning",
+  listening_choice: "Listening",
+  dictation: "Dictation",
+  image_choice: "Pick the picture",
+  pronunciation: "Say it",
 };
 
 /**
