@@ -46,6 +46,7 @@ interface Props {
   /** Optional element pinned to the section's top-right (e.g. a counter). */
   action?: ReactNode;
   children: ReactNode;
+  className?: string;
 }
 
 /** A soft-tinted, accent-bordered section shell with an icon + title header. */
@@ -56,11 +57,12 @@ export function SectionCard({
   description,
   action,
   children,
+  className,
 }: Props) {
   const a = ACCENT[accent];
   return (
     <section
-      className={cn("rounded-xl border border-l-4 p-5 shadow-sm", a.card)}
+      className={cn("rounded-xl border border-l-4 p-5 shadow-sm", a.card, className)}
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">

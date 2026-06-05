@@ -3,7 +3,7 @@
 import { BookOpenIcon, LayersIcon, PlusIcon, TagsIcon } from "lucide-react";
 import { useState } from "react";
 
-import { type Accent, SectionCard } from "./section-card";
+import { type Accent, SectionCard } from "@/components/admin/section-card";
 import {
   SenseFieldset,
   emptySense,

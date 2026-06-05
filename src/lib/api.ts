@@ -46,10 +46,15 @@ export async function apiRequest<T>(
   init?: RequestInit,
   token?: string | null,
 ): Promise<ApiResult<T>> {
+  // Let the runtime set the multipart boundary for FormData bodies (file
+  // uploads); only default to JSON for everything else.
+  const isFormData =
+    typeof FormData !== "undefined" && init?.body instanceof FormData;
+
   const res = await fetch(`${env.API_BASE_URL}${path}`, {
     ...init,
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...init?.headers,
     },
