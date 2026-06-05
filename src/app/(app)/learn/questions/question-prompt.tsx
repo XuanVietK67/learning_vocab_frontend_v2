@@ -3,11 +3,16 @@
 import type { AnswerResponse, SessionItem } from "@/lib/me/learn/types";
 import { ClozeMcqQuestion } from "./cloze-mcq-question";
 import { ClozeTypingQuestion } from "./cloze-typing-question";
+import { DictationQuestion } from "./dictation-question";
 import { FlashcardQuestion } from "./flashcard-question";
+import { ImageChoiceQuestion } from "./image-choice-question";
+import { ListeningChoiceQuestion } from "./listening-choice-question";
 import { ListeningClozeQuestion } from "./listening-cloze-question";
 import { MeaningInContextQuestion } from "./meaning-in-context-question";
+import { PronunciationQuestion } from "./pronunciation-question";
 import { SenseDisambiguationQuestion } from "./sense-disambiguation-question";
-import { SentenceBuildQuestion } from "./sentence-build-question";
+import { TranslationFromWordQuestion } from "./translation-from-word-question";
+import { WordFromTranslationQuestion } from "./word-from-translation-question";
 
 interface QuestionPromptProps {
   item: SessionItem;
@@ -51,12 +56,22 @@ export function QuestionPrompt({
       return <ClozeTypingQuestion prompt={prompt} {...quiz} />;
     case "meaning_in_context":
       return <MeaningInContextQuestion prompt={prompt} {...quiz} />;
-    case "sentence_build":
-      return <SentenceBuildQuestion prompt={prompt} {...quiz} />;
     case "sense_disambiguation":
       return <SenseDisambiguationQuestion prompt={prompt} {...quiz} />;
     case "listening_cloze":
       return <ListeningClozeQuestion prompt={prompt} {...quiz} />;
+    case "word_from_translation":
+      return <WordFromTranslationQuestion prompt={prompt} {...quiz} />;
+    case "translation_from_word":
+      return <TranslationFromWordQuestion prompt={prompt} {...quiz} />;
+    case "listening_choice":
+      return <ListeningChoiceQuestion prompt={prompt} {...quiz} />;
+    case "dictation":
+      return <DictationQuestion prompt={prompt} {...quiz} />;
+    case "image_choice":
+      return <ImageChoiceQuestion prompt={prompt} {...quiz} />;
+    case "pronunciation":
+      return <PronunciationQuestion prompt={prompt} {...quiz} />;
     default: {
       // Exhaustiveness guard — a new question type will surface here at compile time.
       const _exhaustive: never = prompt;

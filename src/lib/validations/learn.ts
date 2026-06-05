@@ -12,9 +12,14 @@ export const questionTypeSchema = z.enum([
   "cloze_mcq",
   "cloze_typing",
   "meaning_in_context",
-  "sentence_build",
   "sense_disambiguation",
   "listening_cloze",
+  "word_from_translation",
+  "translation_from_word",
+  "listening_choice",
+  "dictation",
+  "image_choice",
+  "pronunciation",
 ]);
 
 /** Body for `POST /v1/me/learn/session`. `translationLang` is injected server-side. */

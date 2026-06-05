@@ -9,15 +9,20 @@
  * is discriminated by `prompt.type`.
  */
 
-/** The seven question types — also the discriminator of `Prompt`. */
+/** The twelve question types — also the discriminator of `Prompt`. */
 export type QuestionType =
   | "flashcard"
   | "cloze_mcq"
   | "cloze_typing"
   | "meaning_in_context"
-  | "sentence_build"
   | "sense_disambiguation"
-  | "listening_cloze";
+  | "listening_cloze"
+  | "word_from_translation"
+  | "translation_from_word"
+  | "listening_choice"
+  | "dictation"
+  | "image_choice"
+  | "pronunciation";
 
 /** Self-rating submitted as `userAnswer` for a `flashcard` question. */
 export type FlashcardRating = "forgot" | "hard" | "good" | "easy";
@@ -95,13 +100,6 @@ export interface MeaningInContextPrompt {
   options: string[];
 }
 
-export interface SentenceBuildPrompt {
-  type: "sentence_build";
-  translation: string;
-  /** Shuffled tokens to assemble; `userAnswer` is the space-joined result. */
-  tokens: string[];
-}
-
 export interface SenseDisambiguationSentence {
   exampleId: string;
   sentence: string;
@@ -121,14 +119,65 @@ export interface ListeningClozePrompt {
   options: string[];
 }
 
+/** Show the translation, pick the matching word. `userAnswer` is the chosen lemma. */
+export interface WordFromTranslationPrompt {
+  type: "word_from_translation";
+  translation: string;
+  options: string[];
+}
+
+/** Show the word, pick its translation. `userAnswer` is the chosen translation. */
+export interface TranslationFromWordPrompt {
+  type: "translation_from_word";
+  lemma: string;
+  options: string[];
+}
+
+/** Play audio, pick the matching word. `userAnswer` is the chosen lemma. */
+export interface ListeningChoicePrompt {
+  type: "listening_choice";
+  audioUrl: string | null;
+  options: string[];
+}
+
+/** Play audio, type the word you heard. `userAnswer` is the typed word. */
+export interface DictationPrompt {
+  type: "dictation";
+  audioUrl: string | null;
+  hintTranslation: string | null;
+}
+
+/** Show an image, pick the matching word. `userAnswer` is the chosen lemma. */
+export interface ImageChoicePrompt {
+  type: "image_choice";
+  imageUrl: string;
+  options: string[];
+}
+
+/**
+ * Show the word; the user taps to speak it. Run speech-to-text on the client
+ * and submit the transcript (graded leniently against the lemma).
+ */
+export interface PronunciationPrompt {
+  type: "pronunciation";
+  lemma: string;
+  ipa: string | null;
+  audioUrl: string | null;
+}
+
 export type Prompt =
   | FlashcardPrompt
   | ClozeMcqPrompt
   | ClozeTypingPrompt
   | MeaningInContextPrompt
-  | SentenceBuildPrompt
   | SenseDisambiguationPrompt
-  | ListeningClozePrompt;
+  | ListeningClozePrompt
+  | WordFromTranslationPrompt
+  | TranslationFromWordPrompt
+  | ListeningChoicePrompt
+  | DictationPrompt
+  | ImageChoicePrompt
+  | PronunciationPrompt;
 
 // --- Session item envelope --------------------------------------------------
 
