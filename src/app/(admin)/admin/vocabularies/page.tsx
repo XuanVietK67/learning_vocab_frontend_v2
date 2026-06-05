@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PlusIcon, UploadIcon } from "lucide-react";
+import { ListChecksIcon, PlusIcon } from "lucide-react";
 
 import { Pagination } from "@/components/admin/pagination";
+import { QuickAddMenu } from "@/components/admin/quick-add-menu";
 import { VocabFilters } from "@/components/admin/vocab-filters";
 import { VocabTable } from "@/components/admin/vocab-table";
 import { buttonVariants } from "@/components/ui/button";
@@ -54,7 +55,11 @@ export default async function AdminVocabulariesPage({
     limit: PAGE_SIZE,
   };
 
-  const result = await listAdminVocabularies(filters);
+  const [result, pendingDrafts] = await Promise.all([
+    listAdminVocabularies(filters),
+    listAdminVocabularies({ isApproved: false, limit: 1 }),
+  ]);
+  const pendingCount = pendingDrafts.total;
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-8 sm:px-6 lg:py-10">
@@ -68,22 +73,39 @@ export default async function AdminVocabulariesPage({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Link
-            href="/admin/vocabularies/import"
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-          >
-            <UploadIcon className="size-4" />
-            Import
-          </Link>
+          <QuickAddMenu />
           <Link
             href="/admin/vocabularies/new"
-            className={cn(buttonVariants({ size: "sm" }))}
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
           >
             <PlusIcon className="size-4" />
             New word
           </Link>
         </div>
       </header>
+
+      {pendingCount > 0 && (
+        <Link
+          href="/admin/vocabularies/review"
+          className="flex items-center gap-3 rounded-xl border border-amber-200/70 bg-amber-50/50 px-4 py-3 text-sm transition-colors hover:bg-amber-50 dark:border-amber-500/25 dark:bg-amber-500/10 dark:hover:bg-amber-500/15"
+        >
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300">
+            <ListChecksIcon className="size-4" />
+          </span>
+          <span className="flex-1">
+            <span className="font-medium">
+              {pendingCount} draft{pendingCount === 1 ? "" : "s"} waiting for
+              review
+            </span>
+            <span className="block text-xs text-muted-foreground">
+              AI-generated words are hidden from learners until you approve them.
+            </span>
+          </span>
+          <span className="shrink-0 text-sm font-medium text-amber-700 dark:text-amber-300">
+            Review →
+          </span>
+        </Link>
+      )}
 
       <VocabFilters />
 

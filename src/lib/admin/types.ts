@@ -151,6 +151,73 @@ export interface ImportResult extends ActionResult {
   summary?: BulkImportSummary;
 }
 
+// ── AI-assisted quick-create (single + bulk) ─────────────────────────────────
+
+/** Lifecycle of a single-word enrichment job. */
+export type QuickJobStatus = "pending" | "completed" | "failed";
+
+/**
+ * An async enrichment job — `POST /v1/admin/vocabularies/quick` then polled with
+ * `GET …/quick/:jobId`. One submitted lemma can yield several drafts (one per
+ * part of speech), so `resultVocabularyIds` is always a list.
+ */
+export interface QuickJob {
+  id: string;
+  lemma: string;
+  language: string;
+  status: QuickJobStatus;
+  resultVocabularyIds: string[];
+  error: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/** Counts the bulk extractor reports for a candidate list. */
+export interface ExtractStats {
+  /** Raw tokens/cells found. */
+  extracted: number;
+  /** Duplicates collapsed (case-insensitive). */
+  deduped: number;
+  /** Common words dropped — prose mode only. */
+  removedStopwords: number;
+  /** Candidates already in the catalog, removed. */
+  alreadyInCatalog: number;
+  /** True if the list was truncated to 1000. */
+  capped: boolean;
+}
+
+/** Result of `POST …/quick/extract` — candidate lemmas + extractor stats. */
+export interface ExtractResult {
+  lemmas: string[];
+  stats: ExtractStats;
+}
+
+/** Source-reading mode for bulk extract. */
+export type ExtractMode = "list" | "prose";
+
+/** Result of `POST …/quick/bulk` — a batch id plus accepted/skipped counts. */
+export interface BulkSubmitResult {
+  /** `null` when every lemma was skipped (nothing new to enrich). */
+  batchId: string | null;
+  accepted: number;
+  skipped: number;
+}
+
+/** Progress snapshot from `GET …/quick/batch/:batchId`; drafts fill gradually. */
+export interface BatchStatus {
+  batchId: string;
+  total: number;
+  pending: number;
+  completed: number;
+  failed: number;
+  resultVocabularyIds: string[];
+}
+
+/** Discriminated result for imperatively-invoked (non-form) Server Actions. */
+export type DataResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: string };
+
 /** Query params accepted by `GET /v1/admin/vocabularies` (all optional). */
 export interface AdminVocabularyFilters {
   language?: string;
@@ -158,7 +225,7 @@ export interface AdminVocabularyFilters {
   topic?: string;
   q?: string;
   source?: VocabSource;
-  isApproved?: boolean;
+  isApproved?: boolean | string; // support "true"/"false" for URL params
   visibility?: VocabVisibility;
   createdByUserId?: string;
   translationLang?: string;

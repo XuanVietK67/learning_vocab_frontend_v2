@@ -42,8 +42,10 @@ export async function listAdminVocabularies(
   const token = await getAccessToken();
   if (!token) return EMPTY_PAGE;
 
+  const path = `/v1/admin/vocabularies${toQuery(filters)}`;
+  console.log("[VOCAB DEBUG] GET", path); // DEBUG
   const res = await apiRequest<Paginated<AdminVocabulary>>(
-    `/v1/admin/vocabularies${toQuery(filters)}`,
+    path,
     { method: "GET" },
     token,
   );
