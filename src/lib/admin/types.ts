@@ -129,6 +129,16 @@ export interface VocabularyDetail {
   topics: Topic[];
 }
 
+/**
+ * Full single-vocabulary admin read — `GET /v1/admin/vocabularies/:id`. A
+ * superset of the {@link AdminVocabulary} list row that also resolves unapproved
+ * quick-create drafts (`isApproved: false`) and carries the background
+ * enrichment status, so the review/edit screen can open a draft before publish.
+ */
+export interface AdminVocabularyDetail extends AdminVocabulary {
+  enrichmentStatus: EnrichmentStatus;
+}
+
 /** Result returned by admin mutation Server Actions (consumed via useActionState). */
 export interface ActionResult {
   ok: boolean;
