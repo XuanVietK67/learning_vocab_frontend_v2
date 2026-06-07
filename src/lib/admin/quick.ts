@@ -32,10 +32,15 @@ const SESSION_EXPIRED = "Your session expired — please sign in again.";
 /**
  * Submit one lemma for enrichment (`POST …/quick`). Idempotent server-side: a
  * still-pending job for the same `(language, lemma)` returns that same job.
+ *
+ * `translationLanguage` is the target for the per-sense translation Gemma adds.
+ * Passing it equal to `language` tells the backend to skip translation; we omit
+ * it entirely when not given so the server falls back to its default.
  */
 export async function quickCreateAction(
   lemma: string,
   language = "en",
+  translationLanguage?: string,
 ): Promise<DataResult<QuickJob>> {
   const trimmed = lemma.trim();
   if (!trimmed || trimmed.length > 128) {
@@ -44,7 +49,11 @@ export async function quickCreateAction(
 
   const res = await authedRequest<QuickJob>("/v1/admin/vocabularies/quick", {
     method: "POST",
-    body: JSON.stringify({ lemma: trimmed, language }),
+    body: JSON.stringify({
+      lemma: trimmed,
+      language,
+      ...(translationLanguage ? { translationLanguage } : {}),
+    }),
   });
 
   if (!res.ok || !res.data) {

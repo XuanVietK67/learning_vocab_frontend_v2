@@ -18,6 +18,8 @@ export interface TrackedJob {
   id: string;
   label: string;
   language: string;
+  /** Target language for sense translations; equals `language` when skipped. */
+  translationLanguage?: string;
   status: "pending" | "completed" | "empty" | "failed";
   resultCount: number;
   createdAt: number;
