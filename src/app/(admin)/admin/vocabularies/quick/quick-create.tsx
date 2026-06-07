@@ -11,6 +11,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangleIcon,
+  ArrowRightIcon,
   CheckCircle2Icon,
   Loader2Icon,
   ListChecksIcon,
@@ -26,7 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { pollJobAction, quickCreateAction } from "@/lib/admin/quick";
 import { upsertTracked } from "@/hooks/use-quick-jobs";
-import { LANGUAGES } from "@/lib/languages";
+import { LANGUAGES, languageLabel } from "@/lib/languages";
 import { cn } from "@/lib/utils";
 
 const selectClass =
@@ -40,16 +41,26 @@ interface JobCard {
   id: string;
   lemma: string;
   language: string;
+  /** Target language sent to the backend; equals `language` when translation is skipped. */
+  translationLanguage: string;
   status: CardStatus;
   resultIds: string[];
   error: string | null;
 }
 
+// Sentinel for the "Translate senses to" select meaning "leave senses untranslated".
+const NO_TRANSLATION = "";
+
 export function QuickCreate() {
   const [lemma, setLemma] = useState("");
   const [language, setLanguage] = useState("en");
+  const [translateTo, setTranslateTo] = useState("vi");
   const [submitting, setSubmitting] = useState(false);
   const [cards, setCards] = useState<JobCard[]>([]);
+
+  // Resolve the select into what the backend wants: target === language ⇒ skip.
+  const resolvedTranslation =
+    translateTo && translateTo !== language ? translateTo : language;
 
   // Active poll intervals, keyed by jobId — cleared on resolve/unmount.
   const timers = useRef<Record<string, ReturnType<typeof setInterval>>>({});
@@ -66,6 +77,7 @@ export function QuickCreate() {
       id: c.id,
       label: c.lemma,
       language: c.language,
+      translationLanguage: c.translationLanguage,
       status: c.status === "multi" ? "completed" : c.status,
       resultCount: c.resultIds.length,
       createdAt: Date.now(),
@@ -73,7 +85,7 @@ export function QuickCreate() {
   }, []);
 
   const poll = useCallback(
-    (jobId: string) => {
+    (jobId: string, translationLanguage: string) => {
       timers.current[jobId] = setInterval(async () => {
         const res = await pollJobAction(jobId);
         if (!res.ok) {
@@ -113,6 +125,7 @@ export function QuickCreate() {
           id: jobId,
           lemma: job.lemma,
           language: job.language,
+          translationLanguage,
           status: next,
           resultIds: job.resultVocabularyIds,
           error: job.error,
@@ -123,8 +136,13 @@ export function QuickCreate() {
   );
 
   const start = useCallback(
-    async (word: string, lang: string, existingId?: string) => {
-      const res = await quickCreateAction(word, lang);
+    async (
+      word: string,
+      lang: string,
+      translationLang: string,
+      existingId?: string,
+    ) => {
+      const res = await quickCreateAction(word, lang, translationLang);
       if (!res.ok) {
         toast.error(res.error);
         if (existingId) {
@@ -143,6 +161,7 @@ export function QuickCreate() {
         id: job.id,
         lemma: job.lemma,
         language: job.language,
+        translationLanguage: translationLang,
         status: "pending",
         resultIds: [],
         error: null,
@@ -154,7 +173,7 @@ export function QuickCreate() {
           : [card, ...cs.filter((c) => c.id !== job.id)],
       );
       mirror(card);
-      poll(job.id);
+      poll(job.id, translationLang);
     },
     [mirror, poll],
   );
@@ -176,7 +195,7 @@ export function QuickCreate() {
       return;
     }
     setSubmitting(true);
-    await start(word, language);
+    await start(word, language, resolvedTranslation);
     setSubmitting(false);
     setLemma("");
   }
@@ -187,7 +206,7 @@ export function QuickCreate() {
         c.id === card.id ? { ...c, status: "pending", error: null } : c,
       ),
     );
-    void start(card.lemma, card.language, card.id);
+    void start(card.lemma, card.language, card.translationLanguage, card.id);
   }
 
   function dismiss(id: string) {
@@ -204,7 +223,8 @@ export function QuickCreate() {
         onSubmit={onSubmit}
         className="rounded-xl border bg-card p-5 shadow-sm"
       >
-        <div className="grid gap-4 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+        {/* Row 1 — the word + generate */}
+        <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
           <div className="grid gap-2">
             <Label htmlFor="lemma">Word</Label>
             <Input
@@ -217,21 +237,6 @@ export function QuickCreate() {
               className="h-9 text-base"
             />
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="language">Language</Label>
-            <select
-              id="language"
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              className={cn(selectClass, "h-9 sm:w-40")}
-            >
-              {LANGUAGES.map((l) => (
-                <option key={l.value} value={l.value}>
-                  {l.label}
-                </option>
-              ))}
-            </select>
-          </div>
           <Button type="submit" size="lg" disabled={submitting || !lemma.trim()}>
             {submitting ? (
               <Loader2Icon className="animate-spin" />
@@ -241,9 +246,61 @@ export function QuickCreate() {
             Generate
           </Button>
         </div>
+
+        {/* Row 2 — language pair: word language → translate senses to */}
+        <div className="mt-4 grid items-end gap-3 sm:grid-cols-[auto_auto_auto] sm:gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="language">Word language</Label>
+            <select
+              id="language"
+              value={language}
+              onChange={(e) => {
+                const next = e.target.value;
+                setLanguage(next);
+                // A same-language translation is a no-op — fold it into "don't translate".
+                if (translateTo === next) setTranslateTo(NO_TRANSLATION);
+              }}
+              className={cn(selectClass, "h-9 sm:w-44")}
+            >
+              {LANGUAGES.map((l) => (
+                <option key={l.value} value={l.value}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div
+            aria-hidden
+            className="hidden pb-2.5 text-muted-foreground sm:flex sm:items-center sm:justify-center"
+          >
+            <ArrowRightIcon className="size-4" />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="translateTo">Translate senses to</Label>
+            <select
+              id="translateTo"
+              value={translateTo}
+              onChange={(e) => setTranslateTo(e.target.value)}
+              className={cn(selectClass, "h-9 sm:w-48")}
+            >
+              <option value={NO_TRANSLATION}>Don’t translate</option>
+              {LANGUAGES.filter((l) => l.value !== language).map((l) => (
+                <option key={l.value} value={l.value}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         <p className="mt-3 text-xs text-muted-foreground">
-          Non-English words skip the dictionary and get no IPA. Drafts are
-          reviewed before they go live.
+          Non-English words skip the dictionary and get no IPA.{" "}
+          {resolvedTranslation === language
+            ? "Senses stay in the word’s own language."
+            : `Each sense gets a ${languageLabel(resolvedTranslation)} translation.`}{" "}
+          Drafts are reviewed before they go live.
         </p>
       </form>
 
@@ -281,9 +338,10 @@ function JobResultCard({
       <Shell tone="indigo">
         <Loader2Icon className="size-5 shrink-0 animate-spin text-indigo-600 dark:text-indigo-300" />
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium">
-            Building “{card.lemma}”…
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-medium">Building “{card.lemma}”…</p>
+            <LangPairBadge card={card} />
+          </div>
           <p className="mt-0.5 text-xs text-muted-foreground">
             The AI is drafting this word in the background — you can leave this
             page and it keeps running.
@@ -303,9 +361,12 @@ function JobResultCard({
       <Shell tone="emerald">
         <PartyPopperIcon className="size-5 shrink-0 text-emerald-600 dark:text-emerald-300" />
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium">
-            Created {n} draft{n === 1 ? "" : "s"} for “{card.lemma}”
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-medium">
+              Created {n} draft{n === 1 ? "" : "s"} for “{card.lemma}”
+            </p>
+            <LangPairBadge card={card} />
+          </div>
           <p className="mt-0.5 text-xs text-muted-foreground">
             One word can yield several drafts — one per part of speech. Review
             before they go live.
@@ -396,6 +457,22 @@ function Shell({
     >
       {children}
     </div>
+  );
+}
+
+/** Small chip recalling the request: source language, plus the translation target if any. */
+function LangPairBadge({ card }: { card: JobCard }) {
+  const translated = card.translationLanguage !== card.language;
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-background/70 px-2 py-0.5 text-[11px] font-medium text-muted-foreground ring-1 ring-inset ring-border">
+      {card.language.toUpperCase()}
+      {translated && (
+        <>
+          <ArrowRightIcon className="size-3" />
+          {card.translationLanguage.toUpperCase()}
+        </>
+      )}
+    </span>
   );
 }
 

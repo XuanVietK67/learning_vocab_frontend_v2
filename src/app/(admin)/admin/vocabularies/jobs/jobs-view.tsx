@@ -165,6 +165,9 @@ function SingleRow({
         </div>
         <p className="text-xs text-muted-foreground">
           Single word · {job.language.toUpperCase()}
+          {job.translationLanguage && job.translationLanguage !== job.language
+            ? ` → ${job.translationLanguage.toUpperCase()}`
+            : ""}
         </p>
       </div>
       {job.status === "completed" && job.resultCount > 0 && (
