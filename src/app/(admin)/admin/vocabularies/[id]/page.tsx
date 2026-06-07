@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeftIcon } from "lucide-react";
 
+import { DraftApproveBanner } from "./draft-approve-banner";
 import { SenseList } from "./sense-list";
 import { VocabFieldsForm } from "./vocab-fields-form";
 import { ActionForm } from "@/components/admin/action-form";
@@ -31,7 +32,8 @@ export default async function EditVocabularyPage({
     getTopics(),
   ]);
 
-  // No admin GET-by-id exists; the public read only resolves system words.
+  // Admin read resolves system words incl. unapproved drafts; 404s on unknown
+  // ids and user-created words.
   if (!vocab) notFound();
 
   const linkedSlugs = new Set(vocab.topics.map((t) => t.slug));
@@ -45,6 +47,8 @@ export default async function EditVocabularyPage({
         <ChevronLeftIcon className="size-4" />
         Vocabulary
       </Link>
+
+      {!vocab.isApproved && <DraftApproveBanner vocabId={vocab.id} />}
 
       <VocabFieldsForm
         vocab={vocab}

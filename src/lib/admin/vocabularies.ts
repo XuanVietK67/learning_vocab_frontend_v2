@@ -8,9 +8,9 @@ import { apiRequest } from "../api";
 import { getAccessToken } from "../auth/session";
 import type {
   AdminVocabulary,
+  AdminVocabularyDetail,
   AdminVocabularyFilters,
   Paginated,
-  VocabularyDetail,
 } from "./types";
 
 const EMPTY_PAGE: Paginated<AdminVocabulary> = {
@@ -43,7 +43,6 @@ export async function listAdminVocabularies(
   if (!token) return EMPTY_PAGE;
 
   const path = `/v1/admin/vocabularies${toQuery(filters)}`;
-  console.log("[VOCAB DEBUG] GET", path); // DEBUG
   const res = await apiRequest<Paginated<AdminVocabulary>>(
     path,
     { method: "GET" },
@@ -53,21 +52,28 @@ export async function listAdminVocabularies(
 }
 
 /**
- * Read a single vocabulary with its full sense tree for the detail editor.
- * There is no admin GET-by-id, so this uses the public `GET /v1/vocabularies/:id`
- * (no auth) — which resolves `source="system"` words. Returns `null` for
- * user-submitted words (not exposed there) or any error, so the page can 404.
+ * Read a single vocabulary with its full sense tree for the detail editor via
+ * the admin `GET /v1/admin/vocabularies/:id`. Unlike the public read, this
+ * resolves unapproved quick-create drafts (`isApproved: false`), so the review
+ * "Edit" link can open a draft before it's published. Only `source="system"`
+ * rows are visible; returns `null` when unauthenticated, on 403/404, or any
+ * error, so the page can 404. Render-safe (single attempt, no token refresh),
+ * matching the list read above.
  */
 export async function getVocabularyDetail(
   id: string,
   translationLang?: string,
-): Promise<VocabularyDetail | null> {
+): Promise<AdminVocabularyDetail | null> {
+  const token = await getAccessToken();
+  if (!token) return null;
+
   const query = translationLang
     ? `?translationLang=${encodeURIComponent(translationLang)}`
     : "";
-  const res = await apiRequest<VocabularyDetail>(
-    `/v1/vocabularies/${id}${query}`,
+  const res = await apiRequest<AdminVocabularyDetail>(
+    `/v1/admin/vocabularies/${id}${query}`,
     { method: "GET" },
+    token,
   );
-  return res.ok ? res.data : null;
+  return res.ok && res.data ? res.data : null;
 }
