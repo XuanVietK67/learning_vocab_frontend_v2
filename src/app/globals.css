@@ -309,3 +309,25 @@
     animation-duration: 0.001s !important;
   }
 }
+
+/* ============================================================
+   Admin · Edit Vocabulary — "sense saved" flash. A brief primary
+   tint that settles back to the card surface after a successful
+   per-sense save, so the affected card is unmistakable.
+   ============================================================ */
+@keyframes sense-saved-flash {
+  0% {
+    background-color: color-mix(in oklab, var(--primary), transparent 90%);
+  }
+  100% {
+    background-color: var(--card);
+  }
+}
+.sense-saved-flash {
+  animation: sense-saved-flash 1s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sense-saved-flash {
+    animation: none;
+  }
+}

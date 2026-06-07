@@ -24,8 +24,17 @@ export function SenseList({ vocabularyId, senses }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex items-baseline gap-2">
+        <h2 className="font-heading text-base font-semibold tracking-tight">
+          Senses
+        </h2>
+        <span className="text-sm text-muted-foreground tabular-nums">
+          {senses.length}
+        </span>
+      </div>
+
       {senses.length === 0 && (
-        <p className="text-sm text-muted-foreground">
+        <p className="rounded-md border border-dashed border-border bg-muted/40 px-3 py-3 text-sm text-muted-foreground">
           No senses yet — add the first one below.
         </p>
       )}
@@ -44,7 +53,7 @@ export function SenseList({ vocabularyId, senses }: Props) {
         action={addSenseAction}
         successMessage="Sense added"
         resetOnSuccess
-        className="flex flex-col gap-3 rounded-lg border border-dashed border-border p-3"
+        className="flex flex-col gap-3 rounded-xl border border-dashed border-border bg-muted/20 p-4"
       >
         <input type="hidden" name="vocabularyId" value={vocabularyId} />
         <p className="text-sm font-medium">Add a sense</p>
@@ -53,7 +62,7 @@ export function SenseList({ vocabularyId, senses }: Props) {
           <Input
             id="new-sense-gloss"
             name="gloss"
-            placeholder="short meaning label"
+            placeholder="Short gloss (e.g. “leave behind”)"
           />
         </div>
         <div className="grid gap-2">
@@ -61,7 +70,7 @@ export function SenseList({ vocabularyId, senses }: Props) {
           <Input
             id="new-sense-definition"
             name="definition"
-            placeholder="full definition"
+            placeholder="Full definition"
           />
         </div>
         <div>

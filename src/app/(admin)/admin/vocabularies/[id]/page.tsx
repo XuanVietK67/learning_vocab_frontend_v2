@@ -1,19 +1,13 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeftIcon } from "lucide-react";
+import { Trash2Icon } from "lucide-react";
 
 import { DraftApproveBanner } from "./draft-approve-banner";
 import { SenseList } from "./sense-list";
-import { VocabFieldsForm } from "./vocab-fields-form";
-import { ActionForm } from "@/components/admin/action-form";
-import { AdminSubmit } from "@/components/admin/admin-submit";
+import { TopicsForm } from "./topics-form";
+import { VocabEditor } from "./vocab-editor";
 import { ConfirmButton } from "@/components/admin/confirm-button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  deleteVocabularyAction,
-  updateVocabularyTopicsAction,
-} from "@/lib/admin/actions";
+import { deleteVocabularyAction } from "@/lib/admin/actions";
 import { getTopics } from "@/lib/admin/topics";
 import { getVocabularyDetail } from "@/lib/admin/vocabularies";
 
@@ -36,83 +30,33 @@ export default async function EditVocabularyPage({
   // ids and user-created words.
   if (!vocab) notFound();
 
-  const linkedSlugs = new Set(vocab.topics.map((t) => t.slug));
-
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6 lg:py-10">
-      <Link
-        href="/admin/vocabularies"
-        className="flex w-fit items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ChevronLeftIcon className="size-4" />
-        Vocabulary
-      </Link>
-
-      {!vocab.isApproved && <DraftApproveBanner vocabId={vocab.id} />}
-
-      <VocabFieldsForm
-        vocab={vocab}
-        deleteSlot={
-          <form action={deleteVocabularyAction}>
-            <input type="hidden" name="id" value={vocab.id} />
-            <ConfirmButton
-              message={`Delete "${vocab.lemma}"? This cannot be undone.`}
-            >
-              Delete word
-            </ConfirmButton>
-          </form>
-        }
-      />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Topics</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {topics.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No topics in the catalog yet.
-            </p>
-          ) : (
-            <ActionForm
-              action={updateVocabularyTopicsAction}
-              successMessage="Topics updated"
-              className="flex flex-col gap-4"
-            >
-              <input type="hidden" name="id" value={vocab.id} />
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {topics.map((topic) => (
-                  <label
-                    key={topic.id}
-                    className="flex items-center gap-2 text-sm"
-                  >
-                    <input
-                      type="checkbox"
-                      name="slugs"
-                      value={topic.slug}
-                      defaultChecked={linkedSlugs.has(topic.slug)}
-                      className="size-4 accent-primary"
-                    />
-                    <span className="truncate">{topic.name}</span>
-                  </label>
-                ))}
-              </div>
-              <div>
-                <AdminSubmit variant="outline">Save topics</AdminSubmit>
-              </div>
-            </ActionForm>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Senses ({vocab.senses.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <SenseList vocabularyId={vocab.id} senses={vocab.senses} />
-        </CardContent>
-      </Card>
-    </div>
+    <VocabEditor
+      vocab={vocab}
+      draftBanner={
+        !vocab.isApproved ? <DraftApproveBanner vocabId={vocab.id} /> : null
+      }
+      deleteSlot={
+        <form action={deleteVocabularyAction}>
+          <input type="hidden" name="id" value={vocab.id} />
+          <ConfirmButton
+            size="sm"
+            message={`Delete "${vocab.lemma}"? This cannot be undone.`}
+            aria-label="Delete word"
+          >
+            <Trash2Icon />
+            <span className="hidden sm:inline">Delete</span>
+          </ConfirmButton>
+        </form>
+      }
+      senses={<SenseList vocabularyId={vocab.id} senses={vocab.senses} />}
+      topics={
+        <TopicsForm
+          vocabId={vocab.id}
+          topics={topics}
+          linkedSlugs={vocab.topics.map((t) => t.slug)}
+        />
+      }
+    />
   );
 }
