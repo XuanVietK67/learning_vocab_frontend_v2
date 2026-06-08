@@ -9,13 +9,7 @@ import { OptionList } from "./_shared/option-list";
 type Props = QuizQuestionProps & { prompt: MeaningInContextPrompt };
 
 /** Pick the meaning that fits the highlighted word. Reports the chosen text. */
-export function MeaningInContextQuestion({
-  prompt,
-  lemma,
-  disabled,
-  result,
-  onAnswerChange,
-}: Props) {
+export function MeaningInContextQuestion({ prompt, disabled, result, onAnswerChange }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
   const revealed = result !== null;
 
@@ -29,20 +23,15 @@ export function MeaningInContextQuestion({
   const after = sentence.slice(highlightedSpan.end);
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="rounded-2xl bg-muted/60 px-5 py-4">
-        <p className="text-lg leading-relaxed text-balance">
+    <div className="flex flex-col gap-6">
+      <div>
+        <div className="lr-eyebrow mb-3">What does the highlighted word mean?</div>
+        <p className="lr-sentence text-[26px] text-balance">
           {before}
-          <mark className="bg-[linear-gradient(transparent_60%,rgba(91,141,239,0.38)_60%)] px-0.5 font-bold text-foreground">
-            {span}
-          </mark>
+          <mark className="lr-mark">{span}</mark>
           {after}
         </p>
       </div>
-
-      <p className="text-center text-base font-semibold">
-        What does <span className="text-(--primary-d)">{lemma}</span> mean here?
-      </p>
 
       <OptionList
         options={prompt.options}

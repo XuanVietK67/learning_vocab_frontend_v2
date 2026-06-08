@@ -3,9 +3,11 @@ import { redirect } from "next/navigation";
 
 import { getTopics } from "@/lib/admin/topics";
 import { getMyDecks } from "@/lib/me/decks";
+import { getStats } from "@/lib/me/stats";
 import { sessionModeSchema } from "@/lib/validations/learn";
 import { DeckPicker } from "./deck-picker";
 import { SessionRunner } from "./session-runner";
+import { SourcePicker } from "./source-picker";
 import { TopicPicker } from "./topic-picker";
 
 export const metadata: Metadata = {
@@ -18,6 +20,11 @@ export default async function LearnPage({
   searchParams: Promise<{ mode?: string; topicSlug?: string; deckId?: string }>;
 }) {
   const { mode, topicSlug, deckId } = await searchParams;
+
+  // No mode yet — show the in-app source picker (the new /learn entry).
+  if (!mode) {
+    return <SourcePicker stats={await getStats()} />;
+  }
 
   const parsedMode = sessionModeSchema.safeParse(mode);
   if (!parsedMode.success) redirect("/dashboard");

@@ -9,12 +9,7 @@ import { OptionList } from "./_shared/option-list";
 type Props = QuizQuestionProps & { prompt: WordFromTranslationPrompt };
 
 /** Show the translation, pick the matching word. Reports the chosen word. */
-export function WordFromTranslationQuestion({
-  prompt,
-  disabled,
-  result,
-  onAnswerChange,
-}: Props) {
+export function WordFromTranslationQuestion({ prompt, disabled, result, onAnswerChange }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
   const revealed = result !== null;
 
@@ -23,12 +18,10 @@ export function WordFromTranslationQuestion({
   }, [selected]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="rounded-2xl bg-muted/60 px-5 py-6 text-center">
-        <p className="text-[13px] font-bold uppercase tracking-wide text-muted-foreground">
-          Which word means
-        </p>
-        <p className="mt-1 text-3xl font-extrabold tracking-tight text-(--primary-d) text-balance">
+    <div className="flex flex-col gap-7">
+      <div className="pt-2 text-center">
+        <div className="lr-eyebrow mb-3.5">Choose the word for</div>
+        <p className="text-[40px] leading-tight font-extrabold tracking-tight text-balance">
           {prompt.translation}
         </p>
       </div>
@@ -39,6 +32,7 @@ export function WordFromTranslationQuestion({
         onSelect={setSelected}
         disabled={disabled || revealed}
         correctAnswer={revealed ? result.correctAnswer : null}
+        variant="grid"
       />
     </div>
   );

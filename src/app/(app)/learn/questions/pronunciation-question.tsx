@@ -8,6 +8,7 @@ import type { PronunciationPrompt } from "@/lib/me/learn/types";
 import type { QuizQuestionProps } from "./types";
 import { AudioButton } from "./_shared/audio-button";
 import { useSpeechRecognition } from "./_shared/use-speech-recognition";
+import { useLearnSettings } from "../_chrome/settings-context";
 
 type Props = QuizQuestionProps & { prompt: PronunciationPrompt };
 
@@ -18,6 +19,7 @@ type Props = QuizQuestionProps & { prompt: PronunciationPrompt };
  * (or typed text); the server grades it leniently against the lemma.
  */
 export function PronunciationQuestion({ prompt, disabled, result, onAnswerChange }: Props) {
+  const settings = useLearnSettings();
   const { supported, listening, transcript, error, start, stop } = useSpeechRecognition();
   const [typed, setTyped] = useState("");
   const revealed = result !== null;
@@ -31,24 +33,16 @@ export function PronunciationQuestion({ prompt, disabled, result, onAnswerChange
   }, [supported, spoken, typedTrim]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="flex flex-col items-center gap-5">
-      <div className="flex flex-col items-center gap-1.5 text-center">
-        <p className="text-[13px] font-bold uppercase tracking-wide text-muted-foreground">
-          Say this word
-        </p>
-        <div className="text-[42px] font-bold leading-tight tracking-tight text-balance">
-          {prompt.lemma}
-        </div>
-        {prompt.ipa && <div className="text-lg italic text-muted-foreground">{prompt.ipa}</div>}
-      </div>
+    <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+      <div className="lr-eyebrow">Say this word aloud</div>
+      <div className="lr-word text-[48px]">{prompt.lemma}</div>
+      {settings.showPhonetic && prompt.ipa && <div className="lr-ipa text-[22px]">{prompt.ipa}</div>}
 
       {prompt.audioUrl && (
-        <AudioButton
-          src={prompt.audioUrl}
-          size="md"
-          variant="ghost"
-          label="Hear the pronunciation"
-        />
+        <div className="flex items-center gap-2 text-[13px] font-semibold text-(--ink-3)">
+          <AudioButton src={prompt.audioUrl} size="sm" label="Hear the pronunciation" />
+          reference
+        </div>
       )}
 
       {supported ? (
@@ -58,39 +52,31 @@ export function PronunciationQuestion({ prompt, disabled, result, onAnswerChange
             disabled={disabled || revealed}
             onClick={() => (listening ? stop() : start())}
             aria-label={listening ? "Stop recording" : "Start recording"}
-            className={cn(
-              "relative grid size-18 place-items-center rounded-full text-white transition active:scale-95 disabled:opacity-60 [&_svg]:size-7",
-              listening
-                ? "bg-(--bad) shadow-[0_4px_16px_-4px_rgba(176,34,58,0.5)]"
-                : "bg-primary shadow-[0_4px_16px_-4px_rgba(19,169,123,0.5)]",
-            )}
+            className={cn("lr-mic", listening && "recording")}
           >
-            {listening && (
-              <span
-                className="absolute inset-0 animate-ping rounded-full border-[3px] border-(--bad)/50"
-                aria-hidden="true"
-              />
+            <span className="pulse" />
+            {listening ? (
+              <SquareIcon className="size-8" strokeWidth={2.4} />
+            ) : (
+              <MicIcon className="size-9" strokeWidth={2.1} />
             )}
-            {listening ? <SquareIcon strokeWidth={2.4} /> : <MicIcon strokeWidth={2.2} />}
           </button>
-          <span className="text-[13px] font-bold text-muted-foreground">
+          <span className="text-sm font-bold text-(--ink-2)">
             {listening ? "Listening… tap to stop" : "Tap to speak"}
           </span>
 
           {spoken && (
-            <p className="text-center text-base">
-              You said: <b className="text-foreground">{spoken}</b>
+            <p className="text-base">
+              You said: <b className="text-(--ink)">{spoken}</b>
             </p>
           )}
           {error && !spoken && (
-            <p className="text-center text-sm text-(--bad)">
-              Couldn’t hear that — tap the mic to try again.
-            </p>
+            <p className="text-sm text-(--bad-ink)">Couldn’t hear that — tap the mic to try again.</p>
           )}
         </div>
       ) : (
         <div className="flex w-full flex-col items-center gap-2">
-          <p className="text-center text-sm text-muted-foreground">
+          <p className="text-sm text-(--ink-2)">
             Speech recognition isn’t available in this browser — type what you’d say instead.
           </p>
           <input
@@ -104,15 +90,9 @@ export function PronunciationQuestion({ prompt, disabled, result, onAnswerChange
             spellCheck={false}
             enterKeyHint="done"
             aria-label="Type what you'd say"
-            className="w-full max-w-[320px] rounded-[14px] border-[2.5px] border-primary bg-secondary px-4 py-3 text-center text-[22px] font-bold text-(--primary-d) outline-none placeholder:text-muted-foreground/50 focus:ring-2 focus:ring-primary/30"
+            className="lr-input max-w-80 text-center"
           />
         </div>
-      )}
-
-      {revealed && !result.correct && (
-        <p className="text-center text-sm text-muted-foreground">
-          Answer: <b className="text-(--ok)">{result.correctAnswer}</b>
-        </p>
       )}
     </div>
   );

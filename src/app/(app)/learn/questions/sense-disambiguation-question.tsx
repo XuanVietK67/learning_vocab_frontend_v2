@@ -14,10 +14,7 @@ function highlight(sentence: string, lemma: string) {
   const parts = sentence.split(new RegExp(`(${escapeRegExp(lemma)})`, "ig"));
   return parts.map((part, i) =>
     part.toLowerCase() === lemma.toLowerCase() ? (
-      <mark
-        key={i}
-        className="bg-[linear-gradient(transparent_60%,rgba(91,141,239,0.38)_60%)] px-0.5 font-bold text-foreground"
-      >
+      <mark key={i} className="lr-mark">
         {part}
       </mark>
     ) : (
@@ -51,23 +48,23 @@ export function SenseDisambiguationQuestion({
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="text-center text-2xl font-extrabold tracking-tight">{lemma}</div>
+      <div className="lr-word text-[30px]">{lemma}</div>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2.5">
         {prompt.sentences.map((s, index) => (
           <div
             key={s.exampleId}
-            className="rounded-2xl border border-border bg-[#fafbfc] px-4 py-3 text-base leading-relaxed"
+            className="lr-sentence rounded-2xl bg-(--card-2) px-4 py-3 text-[19px] leading-relaxed"
           >
-            <span className="mr-2 text-xs font-bold text-muted-foreground">{index + 1}.</span>
+            <span className="mr-2 align-middle text-xs font-bold text-(--ink-3)">{index + 1}.</span>
             {highlight(s.sentence, lemma)}
           </div>
         ))}
       </div>
 
-      <p className="text-center text-base font-semibold">
-        Which meaning matches how <span className="text-(--primary-d)">{lemma}</span> is used?
-      </p>
+      <div className="lr-eyebrow">
+        Which meaning matches how “{lemma}” is used?
+      </div>
 
       <OptionList
         options={prompt.options}

@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useReducer, useRef, useState, useTransition } from "react";
-import { RotateCcwIcon } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ClockIcon, RotateCcwIcon, TriangleAlertIcon } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import type { AnswerResponse, QuestionType, SessionMode } from "@/lib/me/learn/types";
 import { startSessionAction, submitAnswerAction } from "./actions";
 import {
@@ -26,21 +27,6 @@ interface SessionRunnerProps {
   deckId?: string;
 }
 
-const TYPE_LABEL: Record<QuestionType, string> = {
-  flashcard: "Flashcard",
-  cloze_mcq: "Multiple choice",
-  cloze_typing: "Type the word",
-  meaning_in_context: "Meaning in context",
-  sense_disambiguation: "Word sense",
-  listening_cloze: "Listening",
-  word_from_translation: "Pick the word",
-  translation_from_word: "Pick the meaning",
-  listening_choice: "Listening",
-  dictation: "Dictation",
-  image_choice: "Pick the picture",
-  pronunciation: "Say it",
-};
-
 /**
  * Client state machine for the guided learn loop: starts a session, renders one
  * signed question at a time inside the study-card shell, submits answers through
@@ -49,6 +35,7 @@ const TYPE_LABEL: Record<QuestionType, string> = {
  * docs/learn_vocabulary_flow.md for the contract this drives.
  */
 export function SessionRunner({ mode, topicSlug, deckId }: SessionRunnerProps) {
+  const router = useRouter();
   const [state, dispatch] = useReducer(sessionReducer, undefined, initialSessionState);
   const [feedback, setFeedback] = useState<AnswerResponse | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -60,6 +47,7 @@ export function SessionRunner({ mode, topicSlug, deckId }: SessionRunnerProps) {
   const [bestStreak, setBestStreak] = useState(0);
   const [fx, setFx] = useState<"ok" | "bad" | null>(null);
   const [fxKey, setFxKey] = useState(0);
+  const [confettiKey, setConfettiKey] = useState(0);
   const [showSummary, setShowSummary] = useState(false);
   const [settings, setSettings] = useState<LearnSettings>(DEFAULT_LEARN_SETTINGS);
   const setSetting = useCallback((key: keyof LearnSettings, value: boolean) => {
@@ -113,6 +101,7 @@ export function SessionRunner({ mode, topicSlug, deckId }: SessionRunnerProps) {
     if (type !== "flashcard") {
       setFx(result.correct ? "ok" : "bad");
       setFxKey((k) => k + 1);
+      if (result.correct) setConfettiKey((k) => k + 1);
       window.setTimeout(() => setFx(null), 850);
     }
   }, []);
@@ -180,17 +169,11 @@ export function SessionRunner({ mode, topicSlug, deckId }: SessionRunnerProps) {
   }
 
   if (state.status === "error") {
-    return <RetryPanel message={state.error ?? "Something went wrong."} onRetry={startSession} />;
+    return <RetryPanel variant="error" onRetry={startSession} />;
   }
 
   if (state.status === "expired") {
-    return (
-      <RetryPanel
-        message="This question expired (sessions last about 30 minutes). Start a fresh one to keep going."
-        onRetry={startSession}
-        retryLabel="Start fresh session"
-      />
-    );
+    return <RetryPanel variant="expired" onRetry={startSession} />;
   }
 
   if (state.status === "empty") {
@@ -222,14 +205,18 @@ export function SessionRunner({ mode, topicSlug, deckId }: SessionRunnerProps) {
         current={state.answeredCount + 1}
         total={state.answeredCount + state.queue.length}
         cardKey={item.sessionItemId}
-        typeLabel={TYPE_LABEL[item.type]}
+        type={item.type}
+        stepIndex={item.stepIndex}
+        stepCount={item.stepCount}
         streak={streak}
         showStreak={streak > 1}
         settings={settings}
         setSetting={setSetting}
-        onProgress={() => setShowSummary(true)}
+        onExit={() => router.push("/learn")}
+        onPeek={() => setShowSummary(true)}
         fx={fx}
         fxKey={fxKey}
+        confettiKey={confettiKey}
         footer={
           <CardFooter
             result={feedback}
@@ -275,38 +262,66 @@ function Overlay({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Skeleton study card shown while the first question loads. */
+/** Skeleton study card shown while the first question loads (matches the shell). */
 function LoadingCard() {
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-3.5rem)] w-full max-w-3xl flex-col items-center justify-center gap-5 px-4 py-6">
-      <div className="learn-card flex min-h-115 w-full flex-col gap-4 rounded-[22px] px-6 py-7 sm:px-9 sm:py-8">
-        <Skeleton className="mx-auto h-6 w-32 rounded-full" />
-        <Skeleton className="mx-auto mt-6 h-30 w-42 rounded-[18px]" />
-        <Skeleton className="mx-auto h-10 w-48" />
-        <div className="mt-auto">
-          <Skeleton className="h-12 w-full rounded-[14px]" />
+    <div className="mx-auto flex min-h-[calc(100vh-3.5rem)] w-full max-w-140 flex-col px-4 py-5 sm:py-6">
+      <div className="mb-4">
+        <div className="mb-3.5 flex items-center justify-between">
+          <div className="lr-sk h-8 w-36 rounded-full" />
+          <div className="lr-sk h-8 w-16 rounded-full" />
         </div>
+        <div className="lr-sk h-3 w-full rounded-full" />
+      </div>
+      <div className="learn-card flex flex-1 flex-col gap-4 p-6 sm:p-7">
+        <div className="lr-sk mx-auto size-22 rounded-full" />
+        <div className="lr-sk mx-auto h-6 w-2/3 rounded-xl" />
+        <div className="lr-sk mx-auto mb-2 h-4 w-2/5 rounded-lg" />
+        <div className="lr-sk h-14 rounded-2xl" />
+        <div className="lr-sk h-14 rounded-2xl" />
+        <div className="lr-sk h-14 rounded-2xl" />
+        <div className="lr-sk mt-auto h-15 rounded-full" />
       </div>
     </div>
   );
 }
 
-function RetryPanel({
-  message,
-  onRetry,
-  retryLabel = "Try again",
-}: {
-  message: string;
-  onRetry: () => void;
-  retryLabel?: string;
-}) {
+/** Calm retry panel for a stale (expired) question or a failed load. */
+function RetryPanel({ variant, onRetry }: { variant: "expired" | "error"; onRetry: () => void }) {
+  const expired = variant === "expired";
   return (
-    <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-6 px-4 py-16 text-center">
-      <p className="text-muted-foreground">{message}</p>
-      <Button type="button" variant="outline" onClick={onRetry} className="h-10 px-5">
-        <RotateCcwIcon />
-        {retryLabel}
-      </Button>
+    <div className="mx-auto flex min-h-[calc(100vh-3.5rem)] w-full max-w-md flex-col justify-center px-4 py-10">
+      <div className="learn-card p-9 text-center">
+        <div
+          className={cn(
+            "lr-pop mx-auto mb-5 grid size-21 place-items-center rounded-3xl",
+            expired ? "bg-(--amber-soft) text-(--amber-2)" : "bg-(--bad-soft) text-(--bad-ink)",
+          )}
+        >
+          {expired ? <ClockIcon className="size-10" /> : <TriangleAlertIcon className="size-10" />}
+        </div>
+        <h1 className="text-[26px] font-extrabold tracking-tight">
+          {expired ? "This question expired" : "Something went wrong"}
+        </h1>
+        <p className="mt-3 text-(--ink-2)">
+          {expired
+            ? "It’s been a while — start a fresh session so your progress stays accurate."
+            : "We couldn’t load your session. Check your connection and try again."}
+        </p>
+        <div className="mt-6 flex flex-col gap-2.5">
+          <button
+            type="button"
+            onClick={onRetry}
+            className="lr-btn lr-btn--primary lr-btn--lg lr-btn--block"
+          >
+            <RotateCcwIcon className="size-5" />
+            {expired ? "Start fresh session" : "Try again"}
+          </button>
+          <Link href="/dashboard" className="lr-btn lr-btn--ghost lr-btn--md lr-btn--block">
+            Back to dashboard
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

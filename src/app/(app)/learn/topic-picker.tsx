@@ -1,47 +1,56 @@
 import Link from "next/link";
+import { TagIcon } from "lucide-react";
 
-import { Card, CardContent } from "@/components/ui/card";
-import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Topic } from "@/lib/admin/types";
+import { PickerHead } from "./picker-head";
 
 interface TopicPickerProps {
   topics: Topic[];
 }
 
+const TINTS = [
+  "bg-(--primary-soft) text-(--primary-ink)",
+  "bg-(--violet-soft) text-(--violet)",
+  "bg-(--sky-soft) text-[#176e93]",
+  "bg-(--amber-soft) text-(--amber-2)",
+];
+
 /** Topic selection step shown before a `mode=topic` session can start. */
 export function TopicPicker({ topics }: TopicPickerProps) {
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8 sm:px-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">Choose a topic</h1>
-        <p className="text-muted-foreground">Study words grouped by subject.</p>
-      </div>
+    <div className="mx-auto flex min-h-[calc(100vh-3.5rem)] w-full max-w-150 flex-col justify-center px-4 py-8">
+      <div className="learn-anim-in">
+        <PickerHead
+          eyebrow="By topic"
+          title="Pick a theme"
+          sub="We’ll build a session around words from this topic."
+        />
 
-      {topics.length === 0 ? (
-        <p className="text-muted-foreground">No topics are available yet.</p>
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {topics.map((topic) => (
-            <Link key={topic.slug} href={`/learn?mode=topic&topicSlug=${topic.slug}`} className="group">
-              <Card className="h-full transition-shadow group-hover:ring-foreground/20">
-                <CardContent className="flex flex-col gap-1">
-                  <span className="font-medium">{topic.name}</span>
-                  {topic.description && (
-                    <span className="line-clamp-2 text-sm text-muted-foreground">
-                      {topic.description}
-                    </span>
+        {topics.length === 0 ? (
+          <p className="text-(--ink-2)">No topics are available yet.</p>
+        ) : (
+          <div className="lr-stagger grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {topics.map((topic, i) => (
+              <Link
+                key={topic.slug}
+                href={`/learn?mode=topic&topicSlug=${topic.slug}`}
+                className="learn-card flex flex-col items-start gap-3 p-4 transition hover:-translate-y-0.5"
+              >
+                <span
+                  className={cn(
+                    "grid size-12 place-items-center rounded-2xl",
+                    TINTS[i % TINTS.length],
                   )}
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      )}
-
-      <Link href="/dashboard" className={cn(buttonVariants({ variant: "ghost" }), "self-start")}>
-        Back to dashboard
-      </Link>
+                >
+                  <TagIcon className="size-5.5" />
+                </span>
+                <span className="font-extrabold">{topic.name}</span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Volume2Icon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -11,61 +11,81 @@ interface AudioButtonProps {
   autoPlay?: boolean;
   label?: string;
   size?: "sm" | "md" | "lg";
-  variant?: "solid" | "ghost";
+  /** Mint by default; violet marks the listening family. */
+  tone?: "mint" | "violet";
 }
 
-const SIZES: Record<NonNullable<AudioButtonProps["size"]>, string> = {
-  sm: "size-8 [&_svg]:size-4",
-  md: "size-10.5 [&_svg]:size-5",
-  lg: "size-15 [&_svg]:size-7",
+const ICON_SIZE: Record<NonNullable<AudioButtonProps["size"]>, string> = {
+  sm: "size-5.5",
+  md: "size-7",
+  lg: "size-9.5",
 };
 
-/** A circular play control for a pronunciation/sentence clip. Browser-only leaf. */
+/**
+ * Sprout audio orb — a circular play control that pulses concentric rings while
+ * the clip plays. Browser-only leaf (uses `Audio`).
+ */
 export function AudioButton({
   src,
   autoPlay = false,
   label = "Play audio",
   size = "md",
-  variant = "solid",
+  tone = "mint",
 }: AudioButtonProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const timer = useRef<number | null>(null);
+  const [playing, setPlaying] = useState(false);
+
+  const pulse = useCallback(() => {
+    setPlaying(true);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => setPlaying(false), 1500);
+  }, []);
 
   useEffect(() => {
-    audioRef.current = new Audio(src);
+    const audio = new Audio(src);
+    audioRef.current = audio;
     if (autoPlay) {
       // Autoplay may be blocked until the user interacts; ignore rejection.
-      void audioRef.current.play().catch(() => {});
+      void audio
+        .play()
+        .then(pulse)
+        .catch(() => {});
     }
     return () => {
-      audioRef.current?.pause();
+      audio.pause();
       audioRef.current = null;
+      if (timer.current) clearTimeout(timer.current);
     };
-  }, [src, autoPlay]);
+  }, [src, autoPlay, pulse]);
 
   function play() {
     const audio = audioRef.current;
     if (!audio) return;
     audio.currentTime = 0;
     void audio.play().catch(() => {});
+    pulse();
   }
 
   return (
     <button
       type="button"
+      aria-label={label}
       onClick={(e) => {
         e.stopPropagation();
         play();
       }}
-      aria-label={label}
       className={cn(
-        "grid shrink-0 place-items-center rounded-full transition active:scale-90",
-        SIZES[size],
-        variant === "solid"
-          ? "bg-primary text-primary-foreground shadow-[0_4px_12px_-4px_rgba(19,169,123,0.45)]"
-          : "text-foreground hover:text-primary",
+        "lr-orb",
+        size === "sm" && "lr-orb--sm",
+        size === "lg" && "lr-orb--lg",
+        tone === "violet" && "violet",
+        playing && "playing",
       )}
     >
-      <Volume2Icon strokeWidth={2.1} />
+      <span className="ring r1" />
+      <span className="ring r2" />
+      <Volume2Icon className={ICON_SIZE[size]} strokeWidth={2.1} />
     </button>
   );
 }

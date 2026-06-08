@@ -11,16 +11,21 @@ interface SentenceBlankProps {
   state?: "ok" | "bad" | null;
   /** Replace the blank with a custom node (e.g. an inline input). */
   slot?: ReactNode;
-  size?: "md" | "lg";
+  size?: "sm" | "md" | "lg";
   className?: string;
 }
 
 const BLANK_RE = /_{2,}/g;
+const SIZES: Record<NonNullable<SentenceBlankProps["size"]>, string> = {
+  sm: "text-[22px]",
+  md: "text-[26px]",
+  lg: "text-[30px]",
+};
 
 /**
- * Renders a cloze sentence, styling the blank (a run of underscores) as an
- * underlined slot. Pass `slot` to drop an inline input into the gap, or `value`
- * to fill it with the chosen word (tinted by `state` once graded).
+ * Renders a cloze sentence in the Sprout serif, styling the blank (a run of
+ * underscores) as an underlined slot. Pass `slot` to drop an inline input into
+ * the gap, or `value` to fill it with the chosen word (tinted by `state`).
  */
 export function SentenceBlank({
   text,
@@ -33,13 +38,7 @@ export function SentenceBlank({
   const parts = text.split(BLANK_RE);
 
   return (
-    <p
-      className={cn(
-        "text-center font-medium leading-loose text-balance",
-        size === "lg" ? "text-[22px]" : "text-xl",
-        className,
-      )}
-    >
+    <p className={cn("lr-sentence text-balance", SIZES[size], className)}>
       {parts.map((part, index) => (
         <Fragment key={index}>
           {part}
@@ -52,16 +51,18 @@ export function SentenceBlank({
 }
 
 function BlankFill({ value, state }: { value?: string | null; state: "ok" | "bad" | null }) {
+  const filled = Boolean(value);
   return (
     <span
       className={cn(
-        "mx-1 inline-block min-w-18.5 border-b-[2.5px] px-1.5 text-center align-baseline font-bold",
-        state === "ok" && "border-(--ok) text-(--ok)",
-        state === "bad" && "border-(--bad) text-(--bad) line-through",
-        !state && "border-primary text-(--primary-d)",
+        "lr-blank",
+        !filled && "is-empty",
+        filled && !state && "is-filled",
+        state === "ok" && "is-correct",
+        state === "bad" && "is-wrong",
       )}
     >
-      {value || "    "}
+      {value || "·····"}
     </span>
   );
 }

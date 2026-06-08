@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import type { ImageChoicePrompt } from "@/lib/me/learn/types";
 import type { QuizQuestionProps } from "./types";
+import { ImageTile } from "./_shared/image-tile";
 import { OptionList } from "./_shared/option-list";
 
 type Props = QuizQuestionProps & { prompt: ImageChoicePrompt };
@@ -18,19 +19,16 @@ export function ImageChoiceQuestion({ prompt, disabled, result, onAnswerChange }
   }, [selected]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex justify-center">
-        {/* Arbitrary backend-supplied URL — not a configured next/image host. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col items-center gap-3.5">
+        <ImageTile
           src={prompt.imageUrl}
           alt="Pick the matching word"
-          loading="lazy"
-          className="h-44 w-full max-w-[320px] rounded-[18px] object-cover shadow-[0_12px_26px_-10px_rgba(0,0,0,0.28)] ring-1 ring-inset ring-foreground/10"
+          className="size-37"
+          float
         />
+        <div className="lr-eyebrow">Which word matches the picture?</div>
       </div>
-
-      <p className="text-center text-base font-semibold">Which word matches this picture?</p>
 
       <OptionList
         options={prompt.options}

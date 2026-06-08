@@ -6,16 +6,13 @@ import type { ListeningChoicePrompt } from "@/lib/me/learn/types";
 import type { QuizQuestionProps } from "./types";
 import { AudioButton } from "./_shared/audio-button";
 import { OptionList } from "./_shared/option-list";
+import { useLearnSettings } from "../_chrome/settings-context";
 
 type Props = QuizQuestionProps & { prompt: ListeningChoicePrompt };
 
 /** Listen, then pick the matching word. Reports the chosen word. */
-export function ListeningChoiceQuestion({
-  prompt,
-  disabled,
-  result,
-  onAnswerChange,
-}: Props) {
+export function ListeningChoiceQuestion({ prompt, disabled, result, onAnswerChange }: Props) {
+  const settings = useLearnSettings();
   const [selected, setSelected] = useState<string | null>(null);
   const revealed = result !== null;
 
@@ -24,17 +21,20 @@ export function ListeningChoiceQuestion({
   }, [selected]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-col items-center gap-2 py-1">
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col items-center gap-2.5">
         {prompt.audioUrl ? (
-          <div className="relative grid place-items-center p-3">
-            <span className="learn-orb-ring" aria-hidden="true" />
-            <AudioButton src={prompt.audioUrl} autoPlay size="lg" label="Replay audio" />
-          </div>
+          <AudioButton
+            src={prompt.audioUrl}
+            autoPlay={settings.autoplay}
+            size="lg"
+            tone="violet"
+            label="Replay audio"
+          />
         ) : (
-          <p className="text-sm text-muted-foreground">Audio unavailable</p>
+          <p className="text-sm text-(--ink-3)">Audio unavailable</p>
         )}
-        <span className="text-[13px] font-bold text-muted-foreground">Which word did you hear?</span>
+        <div className="lr-eyebrow">Which word did you hear?</div>
       </div>
 
       <OptionList
