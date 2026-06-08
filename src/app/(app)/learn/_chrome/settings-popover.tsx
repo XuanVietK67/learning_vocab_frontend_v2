@@ -1,20 +1,29 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { SlidersHorizontalIcon } from "lucide-react";
+import {
+  type LucideIcon,
+  ImageIcon,
+  SettingsIcon,
+  TypeIcon,
+  Volume2Icon,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import {
-  type LearnSettings,
-  SETTING_LABELS,
-} from "./settings-context";
+import { type LearnSettings, SETTING_LABELS } from "./settings-context";
 
 interface SettingsPopoverProps {
   settings: LearnSettings;
   setSetting: (key: keyof LearnSettings, value: boolean) => void;
 }
 
-/** Top-left card control: a small popover of display toggles for the study card. */
+const SETTING_ICONS: Record<keyof LearnSettings, LucideIcon> = {
+  autoplay: Volume2Icon,
+  showPhonetic: TypeIcon,
+  showImage: ImageIcon,
+};
+
+/** Top-row card control: a small popover of display toggles for the study card. */
 export function SettingsPopover({ settings, setSetting }: SettingsPopoverProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -29,54 +38,57 @@ export function SettingsPopover({ settings, setSetting }: SettingsPopoverProps) 
   }, [open]);
 
   return (
-    <div className="absolute left-4 top-4 z-20" ref={ref}>
+    <div className="relative" ref={ref}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-label="Card options"
         aria-expanded={open}
-        className="grid size-10 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        className="lr-icon-btn"
       >
-        <SlidersHorizontalIcon className="size-5" />
+        <SettingsIcon className="size-5" />
       </button>
 
       {open && (
-        <div className="learn-pop absolute left-0 top-12 w-60 rounded-2xl border border-border bg-popover p-2 shadow-[0_18px_40px_-12px_rgba(35,40,70,0.25)]">
-          <p className="px-2.5 pb-1 pt-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Card options
-          </p>
-          {(Object.keys(SETTING_LABELS) as (keyof LearnSettings)[]).map((key) => (
-            <button
-              key={key}
-              type="button"
-              role="switch"
-              aria-checked={settings[key]}
-              onClick={() => setSetting(key, !settings[key])}
-              className="flex w-full items-center justify-between gap-2.5 rounded-xl px-2.5 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
-            >
-              <span>{SETTING_LABELS[key]}</span>
-              <ToggleSwitch on={settings[key]} />
-            </button>
-          ))}
+        <div className="lr-pop absolute right-0 top-12 z-30 w-60 rounded-2xl border border-(--line-2) bg-popover p-3 shadow-(--sh-lg)">
+          <p className="lr-eyebrow px-1 pb-2">Display</p>
+          {(Object.keys(SETTING_LABELS) as (keyof LearnSettings)[]).map((key) => {
+            const Icon = SETTING_ICONS[key];
+            const on = settings[key];
+            return (
+              <button
+                key={key}
+                type="button"
+                role="switch"
+                aria-checked={on}
+                onClick={() => setSetting(key, !on)}
+                className="flex w-full items-center gap-3 rounded-xl px-1.5 py-2.5 text-left text-[15px] font-bold text-(--ink) transition-colors hover:bg-(--card-2)"
+              >
+                <Icon className={on ? "size-5 text-primary" : "size-5 text-(--ink-3)"} />
+                <span className="flex-1">{SETTING_LABELS[key]}</span>
+                <ToggleSwitch on={on} />
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
 
-/** Compact pill toggle styled to the design (mint when on). */
+/** Compact pill toggle (mint when on). */
 export function ToggleSwitch({ on }: { on: boolean }) {
   return (
     <span
       className={cn(
-        "relative h-[22px] w-[38px] shrink-0 rounded-full transition-colors",
-        on ? "bg-primary" : "bg-[#d6dae3]",
+        "relative h-6.5 w-11 shrink-0 rounded-full transition-colors",
+        on ? "bg-primary" : "bg-(--line-2)",
       )}
     >
       <span
         className={cn(
-          "absolute top-[3px] size-4 rounded-full bg-white shadow transition-all",
-          on ? "left-[19px]" : "left-[3px]",
+          "absolute top-0.75 size-5 rounded-full bg-white shadow transition-all",
+          on ? "left-5.25" : "left-0.75",
         )}
       />
     </span>

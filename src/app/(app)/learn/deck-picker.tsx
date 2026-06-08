@@ -1,12 +1,9 @@
 import Link from "next/link";
-import { LayersIcon } from "lucide-react";
+import { BookOpenIcon, ChevronRightIcon } from "lucide-react";
 
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { languageLabel } from "@/lib/languages";
 import type { DeckSummary } from "@/lib/me/types";
+import { PickerHead } from "./picker-head";
 
 interface DeckPickerProps {
   decks: DeckSummary[];
@@ -15,44 +12,48 @@ interface DeckPickerProps {
 /** Deck selection step shown before a `mode=deck` session can start. */
 export function DeckPicker({ decks }: DeckPickerProps) {
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8 sm:px-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">Choose a deck</h1>
-        <p className="text-muted-foreground">Study one of your saved collections.</p>
-      </div>
+    <div className="mx-auto flex min-h-[calc(100vh-3.5rem)] w-full max-w-150 flex-col justify-center px-4 py-8">
+      <div className="learn-anim-in">
+        <PickerHead
+          eyebrow="By deck"
+          title="Choose a deck"
+          sub="Study one of your saved collections."
+        />
 
-      {decks.length === 0 ? (
-        <p className="text-muted-foreground">
-          You don&apos;t have any decks yet. Browse decks to add one.
-        </p>
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {decks.map((deck) => (
-            <Link key={deck.id} href={`/learn?mode=deck&deckId=${deck.id}`} className="group">
-              <Card className="h-full transition-shadow group-hover:ring-foreground/20">
-                <CardContent className="flex items-start gap-3">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground">
-                    <LayersIcon className="size-5" />
-                  </span>
-                  <div className="flex min-w-0 flex-col gap-1">
-                    <span className="truncate font-medium">{deck.name}</span>
-                    <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                      <span>{deck.vocabCount} words</span>
-                      <span aria-hidden>·</span>
-                      <span>{languageLabel(deck.language)}</span>
-                      {deck.cefrLevel && <Badge variant="secondary">{deck.cefrLevel}</Badge>}
-                    </div>
+        {decks.length === 0 ? (
+          <p className="text-(--ink-2)">
+            You don’t have any decks yet. Browse decks to add one.
+          </p>
+        ) : (
+          <div className="lr-stagger flex flex-col gap-2.5">
+            {decks.map((deck) => (
+              <Link
+                key={deck.id}
+                href={`/learn?mode=deck&deckId=${deck.id}`}
+                className="learn-card flex items-center gap-3.5 p-4 transition hover:-translate-y-0.5"
+              >
+                <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-(--sky-soft) text-[#176e93]">
+                  <BookOpenIcon className="size-5.5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-extrabold">{deck.name}</div>
+                  <div className="flex flex-wrap items-center gap-1.5 text-[13px] text-(--ink-2)">
+                    <span>{deck.vocabCount} words</span>
+                    <span aria-hidden>·</span>
+                    <span>{languageLabel(deck.language)}</span>
+                    {deck.cefrLevel && (
+                      <span className="rounded-full bg-(--card-2) px-2 py-0.5 text-xs font-bold">
+                        {deck.cefrLevel}
+                      </span>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      )}
-
-      <Link href="/dashboard" className={cn(buttonVariants({ variant: "ghost" }), "self-start")}>
-        Back to dashboard
-      </Link>
+                </div>
+                <ChevronRightIcon className="size-5 shrink-0 text-(--ink-3)" />
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

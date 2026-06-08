@@ -1,5 +1,7 @@
 "use client";
 
+import { CheckIcon, XIcon } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 
 interface OptionListProps {
@@ -10,15 +12,14 @@ interface OptionListProps {
   disabled: boolean;
   /** Set once graded — switches buttons to correct/incorrect coloring. */
   correctAnswer?: string | null;
-  /** `grid` lays options out two-up (used by cloze MCQ). */
+  /** `grid` lays options out two-up; `list` stacks them. */
   variant?: "list" | "grid";
 }
 
 /**
  * Single-select answer choices with A/B/C/D key badges. Doubles as the reveal
- * surface: once `correctAnswer` is set it tints the correct option green and a
- * wrong pick red. Used by cloze_mcq / meaning_in_context / sense_disambiguation
- * / listening_cloze.
+ * surface: once `correctAnswer` is set it tints the correct option green (with a
+ * check) and a wrong pick red. Powers every MCQ-family question type.
  */
 export function OptionList({
   options,
@@ -34,14 +35,15 @@ export function OptionList({
     <div
       role="radiogroup"
       className={cn(
-        "gap-2.5",
-        variant === "grid" ? "grid grid-cols-1 sm:grid-cols-2" : "flex flex-col",
+        "lr-stagger grid gap-3",
+        variant === "grid" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1",
       )}
     >
       {options.map((option, index) => {
         const isSelected = option === selected;
         const isCorrect = revealed && option === correctAnswer;
         const isWrongPick = revealed && isSelected && option !== correctAnswer;
+        const isMuted = revealed && !isCorrect && !isWrongPick;
 
         return (
           <button
@@ -52,31 +54,25 @@ export function OptionList({
             disabled={disabled}
             onClick={() => onSelect(option)}
             className={cn(
-              "flex items-center gap-3 rounded-[14px] border-[1.5px] bg-card px-4 py-3.5 text-left text-[15px] font-semibold transition active:scale-[0.99]",
-              "focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none",
-              !revealed && isSelected && "border-primary bg-secondary",
-              !revealed && !isSelected && "border-border hover:border-primary/40 hover:bg-secondary/40",
-              isCorrect && "border-(--ok) bg-(--ok-bg) text-[#0c7d44]",
-              isWrongPick && "border-(--bad) bg-(--bad-bg) text-[#b0223a]",
-              revealed && !isCorrect && !isWrongPick && "border-border opacity-60",
-              disabled && "cursor-default",
+              "lr-opt",
+              !revealed && isSelected && "is-selected",
+              isCorrect && "is-correct",
+              isWrongPick && "is-wrong",
+              isMuted && "is-muted",
+              (revealed || disabled) && "is-disabled",
             )}
           >
-            <span
-              className={cn(
-                "grid size-7 shrink-0 place-items-center rounded-lg text-sm font-extrabold transition-colors",
-                isCorrect
-                  ? "bg-(--ok) text-white"
-                  : isWrongPick
-                    ? "bg-(--bad) text-white"
-                    : isSelected && !revealed
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground",
-              )}
-            >
-              {String.fromCharCode(65 + index)}
-            </span>
+            <span className="lr-opt-key">{String.fromCharCode(65 + index)}</span>
             <span className="flex-1 leading-snug">{option}</span>
+            <span className="lr-opt-mark">
+              <span className="grid size-6 place-items-center rounded-full bg-current">
+                {isCorrect ? (
+                  <CheckIcon className="size-3.5 text-white" strokeWidth={3} />
+                ) : (
+                  <XIcon className="size-3.5 text-white" strokeWidth={3} />
+                )}
+              </span>
+            </span>
           </button>
         );
       })}

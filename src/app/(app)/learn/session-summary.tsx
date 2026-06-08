@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { XIcon } from "lucide-react";
+import { TrophyIcon, XIcon } from "lucide-react";
 
-import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Confetti } from "./questions/_shared/confetti";
 
 interface SessionSummaryProps {
   answered: number;
@@ -10,7 +10,7 @@ interface SessionSummaryProps {
   bestStreak: number;
   /** Restart the same mode (re-runs the session start). */
   onStudyAgain: () => void;
-  /** Provided when opened mid-session via the Progress button (adds a close X). */
+  /** Provided when opened mid-session via the progress peek (adds a close X). */
   onClose?: () => void;
 }
 
@@ -27,65 +27,85 @@ export function SessionSummary({
   onClose,
 }: SessionSummaryProps) {
   const accuracy = answered > 0 ? Math.round((correct / answered) * 100) : 0;
-  const burst = accuracy >= 80 ? "🎉" : accuracy >= 50 ? "👏" : "💪";
 
   return (
-    <div className="relative w-full max-w-115 rounded-3xl bg-card p-9 text-center shadow-[0_30px_80px_-24px_rgba(0,0,0,0.4)]">
-      {onClose && (
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className="absolute right-4 top-4 grid size-10 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted"
-        >
-          <XIcon className="size-5" />
-        </button>
-      )}
-
-      <div className="learn-burst text-[56px] leading-none">{burst}</div>
-      <h1 className="mt-2 text-2xl font-extrabold tracking-tight">Your progress</h1>
-      <p className="mt-1 text-[15px] text-muted-foreground">
-        You&apos;ve answered {answered} {answered === 1 ? "card" : "cards"} this session.
-      </p>
-
-      <div className="mt-6 flex gap-3">
-        <Stat value={`${accuracy}%`} label="Accuracy" />
-        <Stat value={`${correct}/${answered}`} label="Correct" />
-        <Stat value={`${bestStreak}🔥`} label="Best streak" fire />
-      </div>
-
-      <div className="mt-7 flex gap-2.5">
-        {onClose ? (
+    <div className="learn-anim-in relative w-full max-w-115">
+      <Confetti fire={1} />
+      <div className="learn-card overflow-hidden p-9 text-center">
+        {onClose && (
           <button
             type="button"
             onClick={onClose}
-            className={cn(buttonVariants({ variant: "outline" }), "h-11 flex-1 text-base")}
+            aria-label="Close"
+            className="absolute top-4 right-4 grid size-10 place-items-center rounded-full text-(--ink-3) transition-colors hover:bg-(--card-2) hover:text-(--ink)"
           >
-            Keep studying
+            <XIcon className="size-5" />
           </button>
-        ) : (
-          <Link
-            href="/dashboard"
-            className={cn(buttonVariants({ variant: "outline" }), "h-11 flex-1 text-base")}
-          >
-            Back to dashboard
-          </Link>
         )}
-        <Button type="button" onClick={onStudyAgain} className="h-11 flex-1 text-base">
-          Study again
-        </Button>
+
+        <div className="lr-pop mx-auto mb-4 grid size-22 place-items-center rounded-full bg-gradient-to-br from-(--amber) to-(--amber-2) text-white shadow-(--sh-amber)">
+          <TrophyIcon className="size-11" strokeWidth={1.9} />
+        </div>
+        <div className="lr-eyebrow">{onClose ? "Your progress" : "Session complete"}</div>
+        <h1 className="mt-1.5 text-3xl font-extrabold tracking-tight">
+          {onClose ? "Nice momentum" : "Great work!"}
+        </h1>
+        <p className="mt-2 text-[15px] text-(--ink-2)">
+          You’ve answered {answered} {answered === 1 ? "card" : "cards"} this session.
+        </p>
+
+        <div className="mt-6 grid grid-cols-3 gap-2.5">
+          <Stat value={`${accuracy}%`} label="Accuracy" tint="primary" />
+          <Stat value={`${correct}/${answered}`} label="Correct" tint="sky" />
+          <Stat value={`${bestStreak}`} label="Best streak" tint="amber" />
+        </div>
+
+        <div className="mt-7 flex flex-col gap-2.5">
+          <button
+            type="button"
+            onClick={onStudyAgain}
+            className="lr-btn lr-btn--primary lr-btn--lg lr-btn--block"
+          >
+            Study again
+          </button>
+          {onClose ? (
+            <button
+              type="button"
+              onClick={onClose}
+              className="lr-btn lr-btn--ghost lr-btn--md lr-btn--block"
+            >
+              Keep studying
+            </button>
+          ) : (
+            <Link href="/dashboard" className="lr-btn lr-btn--ghost lr-btn--md lr-btn--block">
+              Back to dashboard
+            </Link>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-function Stat({ value, label, fire = false }: { value: string; label: string; fire?: boolean }) {
+function Stat({
+  value,
+  label,
+  tint,
+}: {
+  value: string;
+  label: string;
+  tint: "primary" | "sky" | "amber";
+}) {
+  const tintClass =
+    tint === "primary"
+      ? "bg-(--primary-soft) text-(--primary-ink)"
+      : tint === "sky"
+        ? "bg-(--sky-soft) text-[#176e93]"
+        : "bg-(--amber-soft) text-[#b5650c]";
   return (
-    <div className="flex-1 rounded-2xl bg-muted px-2 py-4">
-      <div className={cn("text-2xl font-extrabold", fire ? "text-amber-500" : "text-(--primary-d)")}>
-        {value}
-      </div>
-      <div className="mt-1 text-xs font-bold text-muted-foreground">{label}</div>
+    <div className={cn("rounded-2xl px-2 py-4", tintClass)}>
+      <div className="text-[28px] leading-none font-extrabold tabular-nums">{value}</div>
+      <div className="lr-eyebrow mt-2 opacity-80">{label}</div>
     </div>
   );
 }
