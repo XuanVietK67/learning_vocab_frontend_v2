@@ -1,6 +1,6 @@
 /**
  * Zod schemas for the admin topic forms — re-checked on the server inside the
- * actions. Rules mirror docs/frontend_handoff.md (`POST /v1/admin/topics`,
+ * actions. Rules mirror docs/api/frontend_handoff.md (`POST /v1/admin/topics`,
  * `PATCH /:slug`). The slug is the identifier and is not editable (rename =
  * delete + recreate).
  */

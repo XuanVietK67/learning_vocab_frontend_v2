@@ -8,7 +8,7 @@
  * The current question is always `queue[0]`. Requeued items (a word's
  * next-stage ladder, due again within the session) are appended to the back;
  * v1 reappears them later in the same session rather than firing a wall-clock
- * timer (see docs/learn_vocabulary_flow.md).
+ * timer (see docs/api/learn_vocabulary_flow.md).
  */
 import type {
   EmptyReason,

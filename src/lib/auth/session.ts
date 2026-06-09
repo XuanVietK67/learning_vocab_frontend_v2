@@ -3,7 +3,7 @@
  * client JS. Importing `next/headers` makes this module server-only — pulling it
  * into a Client Component is a build error, which is the guard we want.
  *
- * Token lifetimes follow the backend contract (docs/frontend_handoff.md):
+ * Token lifetimes follow the backend contract (docs/api/frontend_handoff.md):
  * access token 15m, refresh token 30d (rotated on every /auth/refresh).
  */
 import { cookies } from "next/headers";

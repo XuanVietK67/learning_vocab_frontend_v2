@@ -7,7 +7,7 @@
  * source of truth for names and max-ages. Deliberately free of any
  * `next/headers` import so it is safe to pull into proxy.ts.
  *
- * Lifetimes follow the backend contract (docs/auth_session_tokens.md):
+ * Lifetimes follow the backend contract (docs/api/auth_session_tokens.md):
  * access token 15m, refresh token 30d (rotated on every /auth/refresh).
  */
 export const ACCESS_TOKEN = "access_token";

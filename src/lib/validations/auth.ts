@@ -1,7 +1,7 @@
 /**
  * Zod schemas for the auth forms — the single source of truth for validation.
  * Shared between client hints and server-side re-validation inside the actions.
- * Rules mirror docs/frontend_handoff.md.
+ * Rules mirror docs/api/frontend_handoff.md.
  */
 import { z } from "zod";
 

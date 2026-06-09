@@ -1,6 +1,6 @@
 /**
  * Shapes for the authenticated `/v1/me` read surface used by the dashboard.
- * Mirrors docs/frontend_handoff.md — keep in sync with the backend contract.
+ * Mirrors docs/api/frontend_handoff.md — keep in sync with the backend contract.
  */
 import type { CefrLevel } from "@/lib/auth/types";
 

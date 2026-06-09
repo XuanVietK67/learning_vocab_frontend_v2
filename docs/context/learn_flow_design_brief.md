@@ -4,8 +4,8 @@
 > **Goal:** produce a fresh visual + layout design for the signed-in user's
 > **vocabulary learning session**. The new design **may fully replace** the
 > current `/learn` layout.
-> **Source of truth for behavior:** [learn_session_ui_flow.md](learn_session_ui_flow.md)
-> (the screen-by-screen journey) and [learn_vocabulary_flow.md](learn_vocabulary_flow.md)
+> **Source of truth for behavior:** [learn_session_ui_flow.md](../api/learn_session_ui_flow.md)
+> (the screen-by-screen journey) and [learn_vocabulary_flow.md](../api/learn_vocabulary_flow.md)
 > (the exact field shapes). This brief distills both for a designer — you do not
 > need to read the backend contract to design, but everything here traces back to it.
 
@@ -175,23 +175,23 @@ Design with real shapes in mind (full tables in the linked contract docs):
 ## 9. Current implementation (what you're replacing / can reuse)
 
 The flow is already fully built — study it for behavior, then redesign the
-surface. Files under [src/app/(app)/learn/](../src/app/(app)/learn/):
+surface. Files under [src/app/(app)/learn/](../../src/app/(app)/learn/):
 
-- **Page & flow:** [page.tsx](../src/app/(app)/learn/page.tsx) (routes to picker
-  or runner), [session-runner.tsx](../src/app/(app)/learn/session-runner.tsx)
-  (the client state machine), [session-machine.ts](../src/app/(app)/learn/session-machine.ts).
-- **Chrome:** [session-shell.tsx](../src/app/(app)/learn/session-shell.tsx) (the
-  card frame), [_chrome/](../src/app/(app)/learn/_chrome/) (streak badge, garland
+- **Page & flow:** [page.tsx](../../src/app/(app)/learn/page.tsx) (routes to picker
+  or runner), [session-runner.tsx](../../src/app/(app)/learn/session-runner.tsx)
+  (the client state machine), [session-machine.ts](../../src/app/(app)/learn/session-machine.ts).
+- **Chrome:** [session-shell.tsx](../../src/app/(app)/learn/session-shell.tsx) (the
+  card frame), [_chrome/](../../src/app/(app)/learn/_chrome/) (streak badge, garland
   decoration, feedback FX, settings popover, bottom nav).
-- **Questions:** [questions/](../src/app/(app)/learn/questions/) — one component
-  per type + [_shared/](../src/app/(app)/learn/questions/_shared/) atoms
+- **Questions:** [questions/](../../src/app/(app)/learn/questions/) — one component
+  per type + [_shared/](../../src/app/(app)/learn/questions/_shared/) atoms
   (option-list, sentence-blank, audio-button, hint-chip, check-button, card-footer).
-- **Terminal screens:** [empty-state.tsx](../src/app/(app)/learn/empty-state.tsx),
-  [session-summary.tsx](../src/app/(app)/learn/session-summary.tsx),
-  [deck-picker.tsx](../src/app/(app)/learn/deck-picker.tsx),
-  [topic-picker.tsx](../src/app/(app)/learn/topic-picker.tsx).
+- **Terminal screens:** [empty-state.tsx](../../src/app/(app)/learn/empty-state.tsx),
+  [session-summary.tsx](../../src/app/(app)/learn/session-summary.tsx),
+  [deck-picker.tsx](../../src/app/(app)/learn/deck-picker.tsx),
+  [topic-picker.tsx](../../src/app/(app)/learn/topic-picker.tsx).
 - **Scoped theme & keyframes:** the `.learn-shell` / `.learn-card` block in
-  [src/app/globals.css](../src/app/globals.css) (mint tokens, Nunito, fade-up,
+  [src/app/globals.css](../../src/app/globals.css) (mint tokens, Nunito, fade-up,
   confetti, flash/shake, audio orb ring, summary burst). Current accent
   `#13a97b`, surface `#fff`, field `#eef0f4`, ok `#15a35e`, bad `#e23b54`.
 

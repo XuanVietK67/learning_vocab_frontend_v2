@@ -2,7 +2,7 @@
 
 **For:** a designer (or design agent) producing a new layout for the learn‑session
 **pronunciation** card.
-**Read first:** [learn_pronunciation_question.md](learn_pronunciation_question.md) — the API/behaviour spec this redesign serves. This file is the *design brief*: what is on screen, what data each state has, what to reuse, and the constraints the layout must respect. It does **not** restate the API contract; go to the spec for field tables.
+**Read first:** [learn_pronunciation_question.md](../api/learn_pronunciation_question.md) — the API/behaviour spec this redesign serves. This file is the *design brief*: what is on screen, what data each state has, what to reuse, and the constraints the layout must respect. It does **not** restate the API contract; go to the spec for field tables.
 
 ---
 
@@ -128,4 +128,4 @@ Surface a recommendation for each rather than leaving them implicit:
 
 ## 8. Reference — the spec's own sketch
 
-The behaviour spec already proposes a rough two‑state layout in [learn_pronunciation_question.md](learn_pronunciation_question.md) §7 (Record state A, Result state B) plus design notes in the same section. Treat it as a **starting point to improve on**, not a target to copy — it predates this brief and doesn't account for the shared footer (§5) or the sprout component set (§4).
+The behaviour spec already proposes a rough two‑state layout in [learn_pronunciation_question.md](../api/learn_pronunciation_question.md) §7 (Record state A, Result state B) plus design notes in the same section. Treat it as a **starting point to improve on**, not a target to copy — it predates this brief and doesn't account for the shared footer (§5) or the sprout component set (§4).

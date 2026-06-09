@@ -1,6 +1,6 @@
 /**
  * Shapes for the guided learn-session loop (`/v1/me/learn/*`). Mirrors
- * docs/learn_vocabulary_flow.md and docs/api-endpoints.md §Learn — keep in sync
+ * docs/api/learn_vocabulary_flow.md and docs/api/api-endpoints.md §Learn — keep in sync
  * when the backend contract changes.
  *
  * A session returns an ordered list of signed `SessionItem`s (the lesson ladder

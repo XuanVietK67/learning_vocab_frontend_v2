@@ -2,7 +2,7 @@
 
 A self-contained brief for designing the **admin "quick add word" + "bulk import words"** screens. Everything a designer needs is here — you do **not** need the codebase. It covers what the feature does, the exact data and async behaviour to design around, every UI state, the existing design system to stay consistent with, and the concrete screens to lay out.
 
-> Source of truth for the API behaviour: [admin_quick_create_vocabulary.md](admin_quick_create_vocabulary.md) (single) and [admin_bulk_quick_create_vocabulary.md](admin_bulk_quick_create_vocabulary.md) (bulk). This file translates those into design requirements.
+> Source of truth for the API behaviour: [admin_quick_create_vocabulary.md](../api/admin_quick_create_vocabulary.md) (single) and [admin_bulk_quick_create_vocabulary.md](../api/admin_bulk_quick_create_vocabulary.md) (bulk). This file translates those into design requirements.
 
 ---
 

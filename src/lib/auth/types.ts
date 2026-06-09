@@ -1,5 +1,5 @@
 /**
- * Shapes returned by the `/v1/auth` surface. Mirrors docs/frontend_handoff.md —
+ * Shapes returned by the `/v1/auth` surface. Mirrors docs/api/frontend_handoff.md —
  * keep in sync when the backend contract changes.
  */
 
