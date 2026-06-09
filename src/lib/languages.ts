@@ -1,6 +1,6 @@
 /**
  * Canonical list of UI-selectable languages (ISO 639-1, optionally with region —
- * see docs/frontend_handoff.md). Single source of truth for onboarding and the
+ * see docs/api/frontend_handoff.md). Single source of truth for onboarding and the
  * admin surfaces; don't hand-duplicate this list.
  */
 export const LANGUAGES = [

@@ -1,7 +1,7 @@
 /**
  * Zod schemas for the admin vocabulary forms — the single source of truth for
  * validation, re-checked on the server inside the actions. Rules mirror
- * docs/frontend_handoff.md (`POST /v1/admin/vocabularies`, `PATCH /:id`).
+ * docs/api/frontend_handoff.md (`POST /v1/admin/vocabularies`, `PATCH /:id`).
  */
 import { z } from "zod";
 
@@ -36,7 +36,7 @@ const senseExampleSchema = z.object({
 /**
  * One sense in the create payload, with its own image, synonyms/antonyms,
  * translations, and examples. Mirrors the `senses[]` rules in
- * docs/admin_create_vocabulary.md — notably the **2-example minimum** (the
+ * docs/api/admin_create_vocabulary.md — notably the **2-example minimum** (the
  * extra example is held out as a hidden test sentence by the learning module).
  */
 const senseDraftSchema = z.object({

@@ -1,7 +1,7 @@
 /**
  * Zod schemas for the learn-session Server Actions — the single source of truth
  * for validating client input before it reaches the backend. Re-validated
- * server-side inside the actions. Rules mirror docs/api-endpoints.md §Learn.
+ * server-side inside the actions. Rules mirror docs/api/api-endpoints.md §Learn.
  */
 import { z } from "zod";
 

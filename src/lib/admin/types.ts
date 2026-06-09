@@ -1,6 +1,6 @@
 /**
  * Shapes for the admin read surface (`/v1/admin/*`, plus the public `/v1/topics`
- * catalog used to populate filters). Mirrors docs/frontend_handoff.md — keep in
+ * catalog used to populate filters). Mirrors docs/api/frontend_handoff.md — keep in
  * sync when the backend contract changes.
  */
 import type { CefrLevel } from "@/lib/auth/types";

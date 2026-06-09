@@ -32,7 +32,7 @@ interface SessionRunnerProps {
  * signed question at a time inside the study-card shell, submits answers through
  * the Server Actions, shows in-card feedback (+ streak/celebration FX), splices
  * any intra-session requeue, and lands on a summary. See
- * docs/learn_vocabulary_flow.md for the contract this drives.
+ * docs/api/learn_vocabulary_flow.md for the contract this drives.
  */
 export function SessionRunner({ mode, topicSlug, deckId }: SessionRunnerProps) {
   const router = useRouter();
