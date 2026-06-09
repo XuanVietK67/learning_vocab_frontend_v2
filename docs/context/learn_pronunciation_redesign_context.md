@@ -58,6 +58,8 @@ Number of phonemes is small and variable (typically 2–6). Chips must lay out f
 
 This card lives inside the learn study‑card shell. **Match it — do not introduce a new visual language.** Tokens and classes are defined in [globals.css](src/app/globals.css).
 
+> **For pixel-faithful matching, use [sprout_design_system_reference.md](sprout_design_system_reference.md)** — the real CSS (tokens, fonts, every `lr-*` atom, keyframes, and the card scaffold) copied verbatim from source. The summary below is the quick version; that file is the exact one.
+
 **Palette (CSS vars):**
 - Primary / mint: `--primary` `#12bd8a`-family, `--primary-soft`, `--primary-soft-2`, `--sh-primary`.
 - Ink: `--ink` `#15241e`, `--ink-2` `#5b6b64`, `--ink-3` `#91a09a`.
