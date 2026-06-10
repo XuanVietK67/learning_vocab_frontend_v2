@@ -155,8 +155,11 @@ export interface ImageChoicePrompt {
 }
 
 /**
- * Show the word; the user taps to speak it. Run speech-to-text on the client
- * and submit the transcript (graded leniently against the lemma).
+ * Show the word; the user records themselves saying it. The client scores the
+ * audio via `POST /v1/pronunciation/score` and submits the returned `attemptId`
+ * as `userAnswer` (with a keyboard/transcript fallback when the mic or scorer is
+ * unavailable). The prompt shape is unchanged from the old STT flow. See
+ * docs/api/learn_pronunciation_question.md.
  */
 export interface PronunciationPrompt {
   type: "pronunciation";

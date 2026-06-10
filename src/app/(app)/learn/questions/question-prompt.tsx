@@ -71,7 +71,7 @@ export function QuestionPrompt({
     case "image_choice":
       return <ImageChoiceQuestion prompt={prompt} {...quiz} />;
     case "pronunciation":
-      return <PronunciationQuestion prompt={prompt} {...quiz} />;
+      return <PronunciationQuestion prompt={prompt} vocabularyId={item.vocabularyId} {...quiz} />;
     default: {
       // Exhaustiveness guard — a new question type will surface here at compile time.
       const _exhaustive: never = prompt;
