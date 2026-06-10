@@ -8,8 +8,8 @@ import { OptionList } from "./_shared/option-list";
 
 type Props = QuizQuestionProps & { prompt: SenseDisambiguationPrompt };
 
-/** Highlight occurrences of `lemma` (case-insensitive) inside an example. */
-function highlight(sentence: string, lemma: string) {
+/** Highlight occurrences of `lemma` (case-insensitive) — fallback when no span. */
+function highlightLemma(sentence: string, lemma: string) {
   if (!lemma) return sentence;
   const parts = sentence.split(new RegExp(`(${escapeRegExp(lemma)})`, "ig"));
   return parts.map((part, i) =>
@@ -28,9 +28,10 @@ function escapeRegExp(s: string) {
 }
 
 /**
- * Disambiguate the studied word across example sentences, then pick the meaning
- * that applies. The contract grades a single chosen meaning; the sentences are
- * shown as context and the options are a single-select of meanings.
+ * Pick the meaning that fits how the word is used in one example sentence. Wrong
+ * options are the word's other senses (polysemy traps); the contract grades the
+ * chosen meaning text. `highlightedSpan` pinpoints the word when present; when
+ * it's null we highlight occurrences of the lemma instead.
  */
 export function SenseDisambiguationQuestion({
   prompt,
@@ -46,24 +47,27 @@ export function SenseDisambiguationQuestion({
     onAnswerChange(selected);
   }, [selected]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const { sentence, highlightedSpan } = prompt;
+
   return (
-    <div className="flex flex-col gap-5">
-      <div className="lr-word text-[30px]">{lemma}</div>
-
-      <div className="flex flex-col gap-2.5">
-        {prompt.sentences.map((s, index) => (
-          <div
-            key={s.exampleId}
-            className="lr-sentence rounded-2xl bg-(--card-2) px-4 py-3 text-[19px] leading-relaxed"
-          >
-            <span className="mr-2 align-middle text-xs font-bold text-(--ink-3)">{index + 1}.</span>
-            {highlight(s.sentence, lemma)}
-          </div>
-        ))}
-      </div>
-
-      <div className="lr-eyebrow">
-        Which meaning matches how “{lemma}” is used?
+    <div className="flex flex-col gap-6">
+      <div>
+        <div className="lr-eyebrow mb-3">
+          Which meaning matches how “{lemma}” is used?
+        </div>
+        <p className="lr-sentence text-[26px] text-balance">
+          {highlightedSpan ? (
+            <>
+              {sentence.slice(0, highlightedSpan.start)}
+              <mark className="lr-mark">
+                {sentence.slice(highlightedSpan.start, highlightedSpan.end)}
+              </mark>
+              {sentence.slice(highlightedSpan.end)}
+            </>
+          ) : (
+            highlightLemma(sentence, lemma)
+          )}
+        </p>
       </div>
 
       <OptionList

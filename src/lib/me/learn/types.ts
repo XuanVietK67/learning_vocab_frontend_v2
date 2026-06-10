@@ -100,14 +100,11 @@ export interface MeaningInContextPrompt {
   options: string[];
 }
 
-export interface SenseDisambiguationSentence {
-  exampleId: string;
-  sentence: string;
-}
-
 export interface SenseDisambiguationPrompt {
   type: "sense_disambiguation";
-  sentences: SenseDisambiguationSentence[];
+  sentence: string;
+  /** May be null when the backend can't locate the word in the sentence. */
+  highlightedSpan: HighlightSpan | null;
   options: string[];
 }
 
