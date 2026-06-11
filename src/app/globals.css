@@ -217,6 +217,253 @@
   -webkit-font-smoothing: antialiased;
 }
 
+/* ============================================================
+   App shell brand scope — the Sprout identity lifted off /learn
+   onto the authenticated user home + nav (homepage redesign,
+   Direction B "Trophy Room"). Same tokens as .learn-shell so the
+   reused .lr-* atoms and shadcn primitives inherit mint here too.
+   Scoped to .app-shell (set on the (app) layout root); NOT global,
+   and NOT applied to /admin. Light theme only.
+   ============================================================ */
+.app-shell {
+  /* shadcn token overrides (Sprout mint) — reused primitives inherit these */
+  --primary: #12bd8a;
+  --primary-foreground: #ffffff;
+  --ring: #12bd8a;
+  --secondary: #e0f6ee;
+  --secondary-foreground: #07684b;
+  --muted: #eaf1ed;
+  --muted-foreground: #91a09a;
+  --border: #dde6e1;
+  --input: #dde6e1;
+  --card: #ffffff;
+  --card-foreground: #15241e;
+  --popover: #ffffff;
+  --popover-foreground: #15241e;
+  --radius: 1.125rem;
+
+  /* brand core */
+  --app-bg: #eaf1ed;
+  --surface: #ffffff;
+  --card-2: #f6faf8;
+  --primary-press: #0ca576;
+  --primary-ink: #07684b;
+  --primary-soft: #e0f6ee;
+  --primary-soft-2: #c8eede;
+
+  /* ink + lines */
+  --ink: #15241e;
+  --ink-2: #5b6b64;
+  --ink-3: #91a09a;
+  --line: #e9efeb;
+  --line-2: #dde6e1;
+
+  /* gamification accents (color means something — §2.1) */
+  --amber: #ffb020;
+  --amber-2: #ff7a1a;
+  --amber-soft: #fff0d4;
+  --violet: #7b6cff;
+  --violet-soft: #ece9ff;
+  --sky: #1f9fd1;
+  --sky-soft: #e0f1fa;
+
+  /* semantic */
+  --ok: #11a368;
+  --ok-soft: #dcf4e7;
+  --ok-ink: #0a6e44;
+  --bad: #f1456a;
+  --bad-soft: #fde4ea;
+  --bad-ink: #b51f42;
+
+  /* radii */
+  --r-card: 30px;
+  --r-tile: 18px;
+  --r-chip: 999px;
+  --r-input: 16px;
+
+  /* shadows */
+  --sh-sm: 0 1px 2px rgba(16, 40, 32, 0.05), 0 2px 6px rgba(16, 40, 32, 0.04);
+  --sh-md: 0 2px 6px rgba(16, 40, 32, 0.05), 0 14px 30px -10px rgba(16, 40, 32, 0.14);
+  --sh-lg: 0 10px 26px -8px rgba(16, 40, 32, 0.12), 0 34px 64px -22px rgba(16, 40, 32, 0.2);
+  --sh-primary: 0 8px 18px -5px rgba(18, 189, 138, 0.5);
+  --sh-amber: 0 8px 18px -5px rgba(255, 140, 30, 0.5);
+
+  --serif: var(--font-newsreader), ui-serif, Georgia, serif;
+
+  color: var(--ink);
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* page field — the branded canvas behind the home (§2.2) */
+.app-field {
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(18, 189, 138, 0.07), transparent 60%),
+    var(--app-bg);
+}
+
+/* hero band — mint → sky wash behind the streak/CTA hero (§2.2) */
+.hero-band {
+  background:
+    radial-gradient(120% 120% at 0% 0%, rgba(18, 189, 138, 0.14), transparent 55%),
+    radial-gradient(120% 120% at 100% 0%, rgba(31, 159, 209, 0.12), transparent 55%),
+    var(--surface);
+}
+
+/* serif display + tabular numerals (§2.3) */
+.serif {
+  font-family: var(--serif);
+}
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* one card family (§7.4) */
+.lr-card {
+  background: var(--surface);
+  border-radius: var(--r-card);
+  border: 1px solid var(--line);
+  box-shadow: var(--sh-md);
+}
+.hoverlift {
+  transition: transform 0.18s ease, box-shadow 0.2s ease, border-color 0.18s;
+}
+.hoverlift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--sh-lg);
+  border-color: var(--primary-soft-2);
+}
+
+/* progress donut centering helper */
+.donut-wrap {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+}
+.donut-center {
+  position: absolute;
+  text-align: center;
+  line-height: 1;
+}
+
+/* provenance badge — System / Mine / Community (§7.4); label carries
+   meaning, color never alone */
+.prov {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  padding: 4px 9px 4px 7px;
+  border-radius: 999px;
+  line-height: 1;
+}
+.prov--official {
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+}
+.prov--mine {
+  background: #eef1ef;
+  color: var(--ink);
+}
+.prov--community {
+  background: var(--violet-soft);
+  color: #4b3fb0;
+}
+
+/* chip accents (extend the existing .lr-chip) */
+.lr-chip--mint {
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+  border-color: transparent;
+}
+.lr-chip--violet {
+  background: var(--violet-soft);
+  color: #4b3fb0;
+  border-color: transparent;
+}
+.lr-chip--amber {
+  background: var(--amber-soft);
+  color: #92590a;
+  border-color: transparent;
+}
+.lr-chip--sky {
+  background: var(--sky-soft);
+  color: #0f5e80;
+  border-color: transparent;
+}
+
+/* grouped sidebar nav item (§3.2) */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  color: var(--ink-2);
+  font-weight: 600;
+  font-size: 14.5px;
+  position: relative;
+  transition: background 0.14s, color 0.14s;
+  border: 1px solid transparent;
+  text-decoration: none;
+}
+.nav-item:hover {
+  background: var(--card-2);
+  color: var(--ink);
+}
+.nav-item .ni-icon {
+  color: var(--ink-3);
+  display: inline-flex;
+  transition: color 0.14s;
+}
+.nav-item:hover .ni-icon {
+  color: var(--ink-2);
+}
+.nav-item.is-active {
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+  box-shadow: var(--sh-sm);
+}
+.nav-item.is-active .ni-icon {
+  color: var(--primary);
+}
+.nav-item.is-active::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--primary);
+}
+.nav-item.is-active--violet {
+  background: var(--violet-soft);
+  color: #4b3fb0;
+}
+.nav-item.is-active--violet .ni-icon {
+  color: var(--violet);
+}
+.nav-item.is-active--violet::before {
+  background: var(--violet);
+}
+.nav-badge {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
 /* white study card */
 .learn-card {
   background: var(--learn-surface);
@@ -1061,6 +1308,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .learn-shell *,
+  .app-shell *,
   .learn-confetti__bit {
     animation-duration: 0.001s !important;
     animation-iteration-count: 1 !important;

@@ -37,3 +37,19 @@ export const getMyDecks = cache(async (): Promise<DeckSummary[]> => {
   );
   return res.ok && res.data ? res.data.data : [];
 });
+
+/**
+ * Render-safe read of community-published decks (`GET /v1/decks/public`, no
+ * auth required) for the home's "Trending shared lists" rail. Returns the first
+ * page; `[]` on error.
+ */
+export const getPublicDecks = cache(async (): Promise<DeckSummary[]> => {
+  const token = await getAccessToken();
+
+  const res = await apiRequest<{ data: DeckSummary[] }>(
+    "/v1/decks/public?limit=20",
+    { method: "GET" },
+    token,
+  );
+  return res.ok && res.data ? res.data.data : [];
+});
