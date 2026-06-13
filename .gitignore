@@ -42,3 +42,24 @@ next-env.d.ts
 
 .codegraph
 data
+
+
+# LaTeX build artifacts (keep .tex/.bib/.md sources and images/*.pdf figures tracked)
+docs/report/*.pdf
+docs/report/**/*.aux
+docs/report/**/*.fls
+docs/report/**/*.fdb_latexmk
+docs/report/**/*.log
+docs/report/**/*.out
+docs/report/**/*.toc
+docs/report/**/*.lof
+docs/report/**/*.lot
+docs/report/**/*.synctex.gz
+docs/report/**/*.xdv
+docs/report/**/*.bbl
+docs/report/**/*.blg
+docs/report/**/*.bcf
+docs/report/**/*.run.xml
+
+# LaTeX export/transfer bundle (regenerated, not a source)
+docs/report/*.zip

@@ -395,6 +395,11 @@
   color: #0f5e80;
   border-color: transparent;
 }
+.lr-chip--bad {
+  background: var(--bad-soft);
+  color: var(--bad-ink);
+  border-color: transparent;
+}
 
 /* grouped sidebar nav item (§3.2) */
 .nav-item {
@@ -1472,6 +1477,21 @@
   border-radius: 999px;
   background: linear-gradient(90deg, var(--violet), #a99bff);
   width: 0;
+}
+
+/* Practice · Write rubric — neutral 0–5 criteria dots (NOT the band scale) */
+.crit-dots {
+  display: inline-flex;
+  gap: 5px;
+}
+.crit-dots i {
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: var(--line-2);
+}
+.crit-dots i.on {
+  background: var(--ink);
 }
 
 /* inline notices */
