@@ -1,16 +1,26 @@
 import type { Metadata } from "next";
-import { MicIcon } from "lucide-react";
 
-import { ComingSoon } from "@/components/app/coming-soon";
+import { getPracticeWord, getPracticeWords } from "@/lib/me/practice/words";
+import { PracticeScreen } from "./practice-screen";
 
 export const metadata: Metadata = { title: "Practice" };
 
-export default function PracticePage() {
-  return (
-    <ComingSoon
-      icon={MicIcon}
-      title="Practice"
-      description="Speak words out loud and write sentences — pronunciation scoring and writing practice land here soon."
-    />
-  );
+/**
+ * Practice route (server). Resolves the screen's initial data on the server —
+ * the `?word=<id>` deep-link lands the user straight on that word; otherwise we
+ * load the hub's due-word list. The `(app)` layout already guards auth and
+ * supplies the branded `.app-shell`, so this page only owns the content.
+ */
+export default async function PracticePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ word?: string }>;
+}) {
+  const { word } = await searchParams;
+  const [initialWord, initialWords] = await Promise.all([
+    word ? getPracticeWord(word) : Promise.resolve(null),
+    getPracticeWords(),
+  ]);
+
+  return <PracticeScreen initialWord={initialWord} initialWords={initialWords} />;
 }
