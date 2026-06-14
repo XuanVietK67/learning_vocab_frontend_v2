@@ -1,16 +1,19 @@
 import type { Metadata } from "next";
-import { LayersIcon } from "lucide-react";
 
-import { ComingSoon } from "@/components/app/coming-soon";
+import { getMe } from "@/lib/auth/me";
+import { getMyDecks } from "@/lib/me/decks";
+import { ListsScreen } from "./lists-screen";
 
 export const metadata: Metadata = { title: "My Lists" };
 
-export default function DecksPage() {
+/** `/decks` — the learner's own study lists, with create + bulk-import entry points. */
+export default async function DecksPage() {
+  const [decks, me] = await Promise.all([getMyDecks(), getMe()]);
   return (
-    <ComingSoon
-      icon={LayersIcon}
-      title="My Lists"
-      description="Build and organise your own vocabulary lists, set them private or public, and study them anytime. Coming soon."
+    <ListsScreen
+      decks={decks}
+      appLanguage={me?.targetLanguage ?? "en"}
+      nativeLanguage={me?.nativeLanguage ?? "vi"}
     />
   );
 }
