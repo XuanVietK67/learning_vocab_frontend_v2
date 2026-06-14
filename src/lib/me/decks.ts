@@ -7,7 +7,7 @@ import { cache } from "react";
 
 import { apiRequest } from "../api";
 import { getAccessToken } from "../auth/session";
-import type { DeckSummary } from "./types";
+import type { DeckDetail, DeckSummary } from "./types";
 
 export const getSuggestedDecks = cache(async (): Promise<DeckSummary[]> => {
   const token = await getAccessToken();
@@ -36,6 +36,23 @@ export const getMyDecks = cache(async (): Promise<DeckSummary[]> => {
     token,
   );
   return res.ok && res.data ? res.data.data : [];
+});
+
+/**
+ * Render-safe read of one of the caller's own decks with its ordered words
+ * (`GET /v1/me/decks/:id`). Returns `null` when unauthenticated, not found, or
+ * not owned by the caller (403) — the page maps that to `notFound()`.
+ */
+export const getDeck = cache(async (id: string): Promise<DeckDetail | null> => {
+  const token = await getAccessToken();
+  if (!token) return null;
+
+  const res = await apiRequest<DeckDetail>(
+    `/v1/me/decks/${id}`,
+    { method: "GET" },
+    token,
+  );
+  return res.ok && res.data ? res.data : null;
 });
 
 /**
