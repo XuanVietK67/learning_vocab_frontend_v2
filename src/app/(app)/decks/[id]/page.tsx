@@ -25,6 +25,7 @@ export default async function DeckDetailPage({
       deck={deck}
       appLanguage={me?.targetLanguage ?? "en"}
       nativeLanguage={me?.nativeLanguage ?? "vi"}
+      currentUserId={me?.id ?? null}
     />
   );
 }

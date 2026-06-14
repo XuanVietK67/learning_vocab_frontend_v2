@@ -39,10 +39,12 @@ export function countsTotal(counts: StatsCounts): number {
 /* ---------- List card provenance (§7.4) ---------- */
 export type ListCardKind = "official" | "mine" | "community";
 
-export interface HomeDeck extends DeckSummary {
-  visibility?: "private" | "public";
-  author?: string | null;
-}
+/**
+ * Home-rail deck. `visibility`, `ownerId`, and `author` now live on `DeckSummary`
+ * itself (the share/clone feature), so this is just an alias kept for call-site
+ * readability.
+ */
+export type HomeDeck = DeckSummary;
 
 /* ---------- Streak badge (amber, serif number) ---------- */
 export function StreakBadge({ days, big = false }: { days: number; big?: boolean }) {

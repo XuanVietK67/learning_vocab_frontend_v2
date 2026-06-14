@@ -274,6 +274,10 @@
   --bad: #f1456a;
   --bad-soft: #fde4ea;
   --bad-ink: #b51f42;
+  /* warn — the publish-privacy honesty accent (share confirm) */
+  --warn: #d98a23;
+  --warn-soft: #fbf0dd;
+  --warn-ink: #7a4d0c;
 
   /* radii */
   --r-card: 30px;
@@ -842,6 +846,65 @@
 }
 .lr-chip--translation {
   background: var(--card-2);
+}
+
+/* filter select — community grid (Language / Level) */
+.lr-select {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-chip);
+  padding: 8px 34px 8px 15px;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%235b6b64' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.lr-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+/* toggle switch — the author Share control */
+.lr-switch {
+  position: relative;
+  width: 46px;
+  height: 27px;
+  flex: none;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  background: var(--line-2);
+  transition: background 0.2s ease;
+}
+.lr-switch:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.lr-switch[data-on="true"] {
+  background: var(--primary);
+}
+.lr-switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 21px;
+  height: 21px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.lr-switch[data-on="true"]::after {
+  transform: translateX(19px);
 }
 
 /* type label pill */

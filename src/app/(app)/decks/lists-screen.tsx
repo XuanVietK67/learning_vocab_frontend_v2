@@ -7,7 +7,8 @@ import { toast } from "sonner";
 import { FolderPlusIcon, ListIcon, PlusIcon } from "lucide-react";
 
 import { BulkImportSheet } from "@/components/app/bulk-import-sheet";
-import { deleteDeck } from "@/lib/me/deck-actions";
+import { PublishConfirmDialog } from "@/components/app/publish-confirm-dialog";
+import { deleteDeck, setDeckVisibility } from "@/lib/me/deck-actions";
 import type { DeckSummary } from "@/lib/me/types";
 import { ListCard } from "./list-card";
 
@@ -27,9 +28,29 @@ export function ListsScreen({
   const router = useRouter();
   const [removed, setRemoved] = useState<Set<string>>(new Set());
   const [bulkDeck, setBulkDeck] = useState<DeckSummary | null>(null);
-  const [, startTransition] = useTransition();
+  const [confirmDeck, setConfirmDeck] = useState<DeckSummary | null>(null);
+  const [busy, startTransition] = useTransition();
 
   const visible = decks.filter((d) => !removed.has(d.id));
+
+  /** Card-menu Share / Make private. Publishing routes through the privacy confirm. */
+  function onShareToggle(deck: DeckSummary, makePublic: boolean) {
+    if (makePublic) setConfirmDeck(deck);
+    else applyVisibility(deck, false);
+  }
+
+  function applyVisibility(deck: DeckSummary, makePublic: boolean) {
+    startTransition(async () => {
+      const res = await setDeckVisibility(deck.id, makePublic ? "public" : "private");
+      setConfirmDeck(null);
+      if (!res.ok) {
+        toast.error(res.error ?? "Couldn't update sharing.");
+        return;
+      }
+      router.refresh();
+      toast.success(makePublic ? "Shared to the community" : "List is private again");
+    });
+  }
 
   function onDelete(deck: DeckSummary) {
     setRemoved((cur) => new Set(cur).add(deck.id));
@@ -79,7 +100,13 @@ export function ListsScreen({
       ) : (
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {visible.map((deck) => (
-            <ListCard key={deck.id} deck={deck} onBulkImport={setBulkDeck} onDelete={onDelete} />
+            <ListCard
+              key={deck.id}
+              deck={deck}
+              onBulkImport={setBulkDeck}
+              onDelete={onDelete}
+              onShareToggle={onShareToggle}
+            />
           ))}
           <Link
             href="/decks/new"
@@ -99,6 +126,16 @@ export function ListsScreen({
           open={Boolean(bulkDeck)}
           onClose={() => setBulkDeck(null)}
           onChanged={() => router.refresh()}
+        />
+      )}
+
+      {confirmDeck && (
+        <PublishConfirmDialog
+          name={confirmDeck.name}
+          vocabCount={confirmDeck.vocabCount}
+          busy={busy}
+          onCancel={() => setConfirmDeck(null)}
+          onConfirm={() => applyVisibility(confirmDeck, true)}
         />
       )}
     </div>

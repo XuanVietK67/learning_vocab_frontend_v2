@@ -6,10 +6,12 @@ import { useState } from "react";
 import { ChevronLeftIcon, ClipboardListIcon, InboxIcon, ListIcon, PlusIcon } from "lucide-react";
 
 import { BulkImportSheet } from "@/components/app/bulk-import-sheet";
+import { VisibilityBadge } from "@/components/app/visibility-badge";
 import { WordRow } from "@/components/app/word-row";
 import { deckAccent } from "../list-card";
 import { languageLabel } from "@/lib/languages";
 import type { DeckDetail } from "@/lib/me/types";
+import { CopyLinkRow, ShareControl } from "./share-control";
 
 /**
  * List detail (§6.3): the list header with its two "add words" entry points,
@@ -20,15 +22,19 @@ export function ListDetailScreen({
   deck,
   appLanguage,
   nativeLanguage,
+  currentUserId,
 }: {
   deck: DeckDetail;
   appLanguage: string;
   nativeLanguage: string;
+  currentUserId: string | null;
 }) {
   const router = useRouter();
   const [bulkOpen, setBulkOpen] = useState(false);
   const accent = deckAccent(deck.id);
   const words = deck.vocabularies ?? [];
+  // Only the owner of a real (non-seeded) list may share it (design §3 / §6.1).
+  const canShare = deck.ownerId !== null && deck.ownerId === currentUserId && deck.visibility !== "system";
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 lg:py-10">
@@ -47,14 +53,22 @@ export function ListDetailScreen({
           <ListIcon className="size-6" />
         </span>
         <div className="min-w-0 flex-1">
-          <h1 className="font-heading text-2xl font-bold tracking-tight text-(--ink)">{deck.name}</h1>
+          <div className="flex flex-wrap items-start gap-x-3 gap-y-1.5">
+            <h1 className="font-heading text-2xl font-bold tracking-tight text-(--ink)">{deck.name}</h1>
+            <VisibilityBadge
+              visibility={deck.visibility}
+              ownerId={deck.ownerId}
+              className="mt-1.5"
+            />
+          </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-(--ink-3)">
             {deck.description && <span>{deck.description}</span>}
             <span className="tnum">{words.length} words</span>
             <span>{languageLabel(deck.language)}</span>
+            {deck.cefrLevel && <span>{deck.cefrLevel}</span>}
           </div>
         </div>
-        <div className="flex shrink-0 gap-2.5">
+        <div className="flex shrink-0 flex-wrap items-center gap-2.5">
           <Link href="/words/add" className="lr-btn lr-btn--soft lr-btn--md">
             <PlusIcon className="size-4" /> Add word
           </Link>
@@ -65,8 +79,15 @@ export function ListDetailScreen({
           >
             <ClipboardListIcon className="size-4" /> Bulk import
           </button>
+          {canShare && <ShareControl deck={deck} />}
         </div>
       </div>
+
+      {canShare && deck.visibility === "public" && (
+        <div className="mt-4 max-w-md">
+          <CopyLinkRow id={deck.id} />
+        </div>
+      )}
 
       <div className="lr-card mt-6 overflow-hidden">
         {words.length === 0 ? (
