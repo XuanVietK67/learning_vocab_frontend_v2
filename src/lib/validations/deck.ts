@@ -22,3 +22,10 @@ export const createDeckSchema = z.object({
 });
 
 export type CreateDeckInput = z.infer<typeof createDeckSchema>;
+
+/**
+ * Visibility accepted on publish/unpublish (`PATCH /v1/me/decks/:id`). `system`
+ * is intentionally excluded — it's reserved for the seeded catalog and the
+ * backend rejects it with `400`, so the share UI never offers it.
+ */
+export const visibilitySchema = z.enum(["private", "public"]);

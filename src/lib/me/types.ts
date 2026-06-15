@@ -23,6 +23,12 @@ export interface StatsResponse {
   nextDueAt: string | null;
 }
 
+/**
+ * A deck's visibility. `system` = seeded catalog deck (owner-less); `private` /
+ * `public` = a user deck the author keeps to themselves or has shared.
+ */
+export type DeckVisibility = "system" | "public" | "private";
+
 /** Summary card for a deck — `GET /v1/me/decks/suggested`, `GET /v1/decks`. */
 export interface DeckSummary {
   id: string;
@@ -31,6 +37,12 @@ export interface DeckSummary {
   language: string;
   cefrLevel: CefrLevel | null;
   vocabCount: number;
+  /** Drives the badge + share controls; pairs with `ownerId` to tell deck kinds apart. */
+  visibility: DeckVisibility;
+  /** `null` for seeded decks; the author's user id otherwise. Ownership = `ownerId === me`. */
+  ownerId: string | null;
+  /** Author handle on community cards, when the API exposes it. */
+  author?: string | null;
 }
 
 // ── My Words (`GET /v1/me/vocabularies`) ─────────────────────────────────────

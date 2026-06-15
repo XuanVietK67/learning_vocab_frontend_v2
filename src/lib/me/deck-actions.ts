@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 
 import { authedRequest, firstMessage } from "@/lib/api";
-import { createDeckSchema } from "@/lib/validations/deck";
-import type { DeckDetail } from "./types";
+import { createDeckSchema, visibilitySchema } from "@/lib/validations/deck";
+import type { DeckDetail, DeckVisibility } from "./types";
 
 /** `202` response from starting a bulk import. `batchId` is null when nothing was accepted. */
 export interface BulkImportStart {
@@ -45,6 +45,59 @@ export async function createDeck(input: {
 
   if (!res.ok || !res.data) {
     return { ok: false, error: firstMessage(res.error) ?? "Couldn't create that list." };
+  }
+  revalidatePath("/decks");
+  return { ok: true, id: res.data.id };
+}
+
+/**
+ * Publish / unpublish one of the caller's lists (`PATCH /v1/me/decks/:id`) by
+ * flipping `visibility` between `public` and `private`. `system` is rejected by
+ * the schema (never offered in the UI). Re-validates the list, its detail, and
+ * the community grid so the new badge shows everywhere.
+ */
+export async function setDeckVisibility(
+  id: string,
+  visibility: DeckVisibility,
+): Promise<{ ok: boolean; error?: string }> {
+  const parsed = visibilitySchema.safeParse(visibility);
+  if (!parsed.success) {
+    return { ok: false, error: "That visibility can't be set." };
+  }
+
+  const res = await authedRequest<DeckDetail>(`/v1/me/decks/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ visibility: parsed.data }),
+  });
+
+  if (!res.ok) {
+    return { ok: false, error: firstMessage(res.error) ?? "Couldn't update sharing." };
+  }
+  revalidatePath("/decks");
+  revalidatePath(`/decks/${id}`);
+  revalidatePath("/community");
+  return { ok: true };
+}
+
+/**
+ * Clone a public/seeded list into the caller's own lists as a fresh private copy
+ * (`POST /v1/me/decks/:id/clone`). Returns the new deck id on `201` so the client
+ * can deep-link to it; surfaces `status` so the caller can branch `401 → login`
+ * and `404 → "no longer available"`.
+ */
+export async function cloneDeck(
+  id: string,
+): Promise<{ ok: true; id: string } | { ok: false; status: number; error: string }> {
+  const res = await authedRequest<DeckDetail>(`/v1/me/decks/${id}/clone`, {
+    method: "POST",
+  });
+
+  if (!res.ok || !res.data) {
+    return {
+      ok: false,
+      status: res.status,
+      error: firstMessage(res.error) ?? "Couldn't save that list.",
+    };
   }
   revalidatePath("/decks");
   return { ok: true, id: res.data.id };

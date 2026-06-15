@@ -76,10 +76,14 @@ export function WordRow({
   word,
   highlight,
   onRemove,
+  chip = "private",
 }: {
   word: MyWord;
   highlight?: boolean;
   onRemove?: () => void;
+  /** The trailing pill. `"private"` (default) shows "Private"; `"none"` hides it
+   *  (e.g. a community preview of someone else's list). */
+  chip?: "private" | "none";
 }) {
   const gloss = wordGloss(word);
   const translation = wordTranslation(word);
@@ -115,9 +119,11 @@ export function WordRow({
         )}
       </div>
 
-      <span className="hidden shrink-0 rounded-full bg-(--muted) px-2 py-0.5 text-[11px] font-semibold text-(--ink-3) sm:inline">
-        Private
-      </span>
+      {chip === "private" && (
+        <span className="hidden shrink-0 rounded-full bg-(--muted) px-2 py-0.5 text-[11px] font-semibold text-(--ink-3) sm:inline">
+          Private
+        </span>
+      )}
 
       <SpeakerButton audioUrl={word.audioUrl} lemma={word.lemma} />
 
