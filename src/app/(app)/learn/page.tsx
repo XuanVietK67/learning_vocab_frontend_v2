@@ -6,8 +6,8 @@ import { getMyDecks } from "@/lib/me/decks";
 import { getStats } from "@/lib/me/stats";
 import { sessionModeSchema } from "@/lib/validations/learn";
 import { DeckPicker } from "./deck-picker";
+import { LearnHub } from "./learn-hub";
 import { SessionRunner } from "./session-runner";
-import { SourcePicker } from "./source-picker";
 import { TopicPicker } from "./topic-picker";
 
 export const metadata: Metadata = {
@@ -21,9 +21,14 @@ export default async function LearnPage({
 }) {
   const { mode, topicSlug, deckId } = await searchParams;
 
-  // No mode yet — show the in-app source picker (the new /learn entry).
+  // No mode yet — show the learn hub (quick start + topic/deck rails).
   if (!mode) {
-    return <SourcePicker stats={await getStats()} />;
+    const [stats, topics, decks] = await Promise.all([
+      getStats(),
+      getTopics(),
+      getMyDecks(),
+    ]);
+    return <LearnHub stats={stats} topics={topics} decks={decks} />;
   }
 
   const parsedMode = sessionModeSchema.safeParse(mode);

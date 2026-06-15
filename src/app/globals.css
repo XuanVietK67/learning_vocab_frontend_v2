@@ -1374,6 +1374,28 @@
   animation-delay: 0.28s;
 }
 
+/* Horizontal scroll rail: a single snapping row of cards on the learn hub.
+   Cards keep their width and never shrink; the row bleeds into the container's
+   right padding (matching the hub's px-5) so the next card is visibly cut off,
+   signalling there's more to scroll. Scrollbar hidden; snaps to card start. */
+.lr-rail {
+  display: flex;
+  gap: 13px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 4px 1.25rem 8px 0;
+  margin-right: -1.25rem;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.lr-rail::-webkit-scrollbar {
+  display: none;
+}
+.lr-rail > * {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .learn-shell *,
   .app-shell *,
