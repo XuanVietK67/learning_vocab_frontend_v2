@@ -34,6 +34,8 @@ export const startSessionSchema = z
       .optional(),
     deckId: z.uuid().optional(),
     limit: z.number().int().min(1).max(50).optional(),
+    /** Free re-study ignoring SRS due dates; deck/topic only (see refine). */
+    practice: z.boolean().optional(),
   })
   .refine((v) => v.mode !== "topic" || Boolean(v.topicSlug), {
     message: "topicSlug is required for topic mode.",
@@ -42,6 +44,10 @@ export const startSessionSchema = z
   .refine((v) => v.mode !== "deck" || Boolean(v.deckId), {
     message: "deckId is required for deck mode.",
     path: ["deckId"],
+  })
+  .refine((v) => !v.practice || v.mode === "deck" || v.mode === "topic", {
+    message: "practice is only valid with deck or topic mode.",
+    path: ["practice"],
   });
 
 /**

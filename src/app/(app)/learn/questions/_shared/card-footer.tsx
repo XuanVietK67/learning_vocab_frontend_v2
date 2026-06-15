@@ -6,6 +6,9 @@ import type { AnswerResponse } from "@/lib/me/learn/types";
 import { CheckButton } from "./check-button";
 import { RevealBar } from "./reveal-bar";
 
+/** Practice-mode hint: the answer was graded but left the schedule untouched. */
+const PRACTICE_NOT_COUNTED = "Practice — not counted toward your next review";
+
 interface CardFooterProps {
   /** Null while answering; set once the answer has been graded. */
   result: AnswerResponse | null;
@@ -15,6 +18,8 @@ interface CardFooterProps {
   canCheck?: boolean;
   /** Last item in the queue — relabels Continue as Finish. */
   isLast: boolean;
+  /** Practice mode: the answer was graded but didn't move the SRS schedule. */
+  notCounted?: boolean;
   onCheck?: () => void;
   onContinue: () => void;
 }
@@ -29,6 +34,7 @@ export function CardFooter({
   variant,
   canCheck = false,
   isLast,
+  notCounted = false,
   onCheck,
   onContinue,
 }: CardFooterProps) {
@@ -40,7 +46,16 @@ export function CardFooter({
   return (
     <div className="flex flex-col gap-3.5">
       {variant === "quiz" && (
-        <RevealBar correct={result.correct} answer={result.correctAnswer} />
+        <RevealBar
+          correct={result.correct}
+          answer={result.correctAnswer}
+          subtext={notCounted ? PRACTICE_NOT_COUNTED : undefined}
+        />
+      )}
+      {variant === "flashcard" && notCounted && (
+        <p className="text-center text-[13px] font-semibold text-(--ink-2)">
+          {PRACTICE_NOT_COUNTED}
+        </p>
       )}
       <button
         type="button"
