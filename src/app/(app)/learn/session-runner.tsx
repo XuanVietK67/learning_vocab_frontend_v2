@@ -25,6 +25,8 @@ interface SessionRunnerProps {
   mode: SessionMode;
   topicSlug?: string;
   deckId?: string;
+  /** Free re-study ignoring SRS due dates (deck/topic only). */
+  practice?: boolean;
 }
 
 /**
@@ -34,7 +36,12 @@ interface SessionRunnerProps {
  * any intra-session requeue, and lands on a summary. See
  * docs/api/learn_vocabulary_flow.md for the contract this drives.
  */
-export function SessionRunner({ mode, topicSlug, deckId }: SessionRunnerProps) {
+export function SessionRunner({
+  mode,
+  topicSlug,
+  deckId,
+  practice = false,
+}: SessionRunnerProps) {
   const router = useRouter();
   const [state, dispatch] = useReducer(sessionReducer, undefined, initialSessionState);
   const [feedback, setFeedback] = useState<AnswerResponse | null>(null);
@@ -65,14 +72,14 @@ export function SessionRunner({ mode, topicSlug, deckId }: SessionRunnerProps) {
       setFx(null);
       setShowSummary(false);
       dispatch({ type: "LOADING" });
-      const res = await startSessionAction({ mode, topicSlug, deckId });
+      const res = await startSessionAction({ mode, topicSlug, deckId, practice });
       if (res.ok) {
         dispatch({ type: "LOADED", session: res.session });
       } else {
         dispatch({ type: "LOAD_FAILED", error: res.error });
       }
     });
-  }, [mode, topicSlug, deckId]);
+  }, [mode, topicSlug, deckId, practice]);
 
   // Start (and restart when the mode/target changes).
   useEffect(() => {
@@ -177,7 +184,28 @@ export function SessionRunner({ mode, topicSlug, deckId }: SessionRunnerProps) {
   }
 
   if (state.status === "empty") {
-    return <EmptyState reason={state.emptyReason} nextDueAt={state.nextDueAt} />;
+    // Offer a free-practice re-run when a (non-practice) deck/topic runs dry.
+    const practiceTarget =
+      !practice && mode === "deck" && deckId
+        ? {
+            href: `/learn?mode=deck&deckId=${deckId}&practice=1`,
+            label: "Practice this deck",
+          }
+        : !practice && mode === "topic" && topicSlug
+          ? {
+              href: `/learn?mode=topic&topicSlug=${topicSlug}&practice=1`,
+              label: "Practice these words",
+            }
+          : null;
+    return (
+      <EmptyState
+        reason={state.emptyReason}
+        nextDueAt={state.nextDueAt}
+        practice={practice}
+        practiceHref={practiceTarget?.href}
+        practiceLabel={practiceTarget?.label}
+      />
+    );
   }
 
   if (state.status === "done") {
@@ -223,6 +251,7 @@ export function SessionRunner({ mode, topicSlug, deckId }: SessionRunnerProps) {
             variant={variant}
             canCheck={answer !== null}
             isLast={isLast}
+            notCounted={feedback?.progress?.counted === false}
             onCheck={() => answer !== null && handleSubmit(answer)}
             onContinue={handleContinue}
           />

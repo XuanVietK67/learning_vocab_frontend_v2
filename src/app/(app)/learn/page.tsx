@@ -17,9 +17,14 @@ export const metadata: Metadata = {
 export default async function LearnPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string; topicSlug?: string; deckId?: string }>;
+  searchParams: Promise<{
+    mode?: string;
+    topicSlug?: string;
+    deckId?: string;
+    practice?: string;
+  }>;
 }) {
-  const { mode, topicSlug, deckId } = await searchParams;
+  const { mode, topicSlug, deckId, practice } = await searchParams;
 
   // No mode yet — show the learn hub (quick start + topic/deck rails).
   if (!mode) {
@@ -43,5 +48,16 @@ export default async function LearnPage({
     return <DeckPicker decks={await getMyDecks()} />;
   }
 
-  return <SessionRunner mode={selectedMode} topicSlug={topicSlug} deckId={deckId} />;
+  // Practice (free re-study, ignoring due dates) only applies to deck/topic.
+  const isPractice =
+    practice === "1" && (selectedMode === "deck" || selectedMode === "topic");
+
+  return (
+    <SessionRunner
+      mode={selectedMode}
+      topicSlug={topicSlug}
+      deckId={deckId}
+      practice={isPractice}
+    />
+  );
 }

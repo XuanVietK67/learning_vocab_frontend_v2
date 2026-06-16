@@ -234,6 +234,12 @@ export interface ProgressRow {
   lastReviewedAt: string;
   correctCount: number;
   incorrectCount: number;
+  /**
+   * `false` when the answer was free practice on a card that wasn't due yet —
+   * graded for feedback but the schedule/status/counters were left untouched.
+   * Always present here (this row only exists on the final, rescheduling step).
+   */
+  counted: boolean;
 }
 
 /** The word's next-stage ladder, due again inside this session. */

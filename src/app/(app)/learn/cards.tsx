@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpenIcon, TagIcon } from "lucide-react";
+import { BookOpenIcon, DumbbellIcon, TagIcon } from "lucide-react";
 
 import { languageLabel } from "@/lib/languages";
 import { cn } from "@/lib/utils";
@@ -47,8 +47,32 @@ export function CefrBadge({ level }: { level: CefrLevel }) {
 }
 
 /**
- * Topic card — links straight into a topic session. `fill` makes it stretch to
- * its grid cell (pickers); otherwise it keeps the rail's fixed width.
+ * A small "Practice" pill — free re-study ignoring SRS due dates. Rendered as a
+ * sibling of the card's stretched study link and lifted above it (`relative z-2`)
+ * so it stays independently clickable without nesting one anchor inside another.
+ */
+function PracticePill({ href, className }: { href: string; className?: string }) {
+  return (
+    <Link
+      href={href}
+      aria-label="Practice — re-study without waiting for due dates"
+      title="Practice — re-study without waiting for due dates"
+      className={cn(
+        "relative z-[2] inline-flex items-center gap-1 rounded-full border border-(--line) bg-(--learn-surface) px-2.5 py-1 text-[11.5px] font-bold text-(--ink-2) shadow-(--sh-sm) transition hover:border-(--primary) hover:text-(--primary-ink)",
+        className,
+      )}
+    >
+      <DumbbellIcon className="size-3.5" />
+      Practice
+    </Link>
+  );
+}
+
+/**
+ * Topic card — links straight into a topic session, with a corner Practice pill.
+ * `fill` makes it stretch to its grid cell (pickers); otherwise it keeps the
+ * rail's fixed width. The whole card is a stretched study link; the pill sits
+ * above it.
  */
 export function TopicTile({
   topic,
@@ -60,28 +84,41 @@ export function TopicTile({
   fill?: boolean;
 }) {
   return (
-    <Link
-      href={`/learn?mode=topic&topicSlug=${topic.slug}`}
-      className={cn(CARD, "flex flex-col p-[18px]", fill ? "w-full" : "w-[172px]")}
+    <div
+      className={cn(
+        CARD,
+        "relative flex flex-col p-[18px]",
+        fill ? "w-full" : "w-[172px]",
+      )}
     >
-      <span
-        className={cn(
-          "mb-4 grid size-12 place-items-center rounded-[14px]",
-          TINTS[idx % TINTS.length],
-        )}
-      >
-        <TagIcon className="size-5" />
-      </span>
+      <Link
+        href={`/learn?mode=topic&topicSlug=${topic.slug}`}
+        aria-label={`Study ${topic.name}`}
+        className="absolute inset-0 z-[1] rounded-[20px]"
+      />
+      <div className="mb-4 flex items-start justify-between gap-2">
+        <span
+          className={cn(
+            "grid size-12 place-items-center rounded-[14px]",
+            TINTS[idx % TINTS.length],
+          )}
+        >
+          <TagIcon className="size-5" />
+        </span>
+        <PracticePill href={`/learn?mode=topic&topicSlug=${topic.slug}&practice=1`} />
+      </div>
       <span className="line-clamp-2 text-[16.5px] leading-[1.15] font-bold tracking-[-0.01em] text-(--ink)">
         {topic.name}
       </span>
-    </Link>
+    </div>
   );
 }
 
 /**
- * Compact deck card — icon, name, "N words · language", CEFR badge. `fill`
- * stretches it to a grid cell (pickers); otherwise it keeps the rail width.
+ * Compact deck card — icon, name, "N words · language", CEFR badge, plus a
+ * Practice pill in the meta row. `fill` stretches it to a grid cell (pickers);
+ * otherwise it keeps the rail width. The card is a stretched study link; the
+ * pill sits above it (see {@link PracticePill}).
  */
 export function DeckCard({
   deck,
@@ -93,10 +130,18 @@ export function DeckCard({
   fill?: boolean;
 }) {
   return (
-    <Link
-      href={`/learn?mode=deck&deckId=${deck.id}`}
-      className={cn(CARD, "flex flex-col p-[18px]", fill ? "w-full" : "w-[256px]")}
+    <div
+      className={cn(
+        CARD,
+        "relative flex flex-col p-[18px]",
+        fill ? "w-full" : "w-[256px]",
+      )}
     >
+      <Link
+        href={`/learn?mode=deck&deckId=${deck.id}`}
+        aria-label={`Study ${deck.name}`}
+        className="absolute inset-0 z-[1] rounded-[20px]"
+      />
       <div className="flex items-center gap-3">
         <span
           className={cn(
@@ -117,7 +162,11 @@ export function DeckCard({
           {deck.vocabCount} words · {languageLabel(deck.language)}
         </span>
         {deck.cefrLevel && <CefrBadge level={deck.cefrLevel} />}
+        <PracticePill
+          href={`/learn?mode=deck&deckId=${deck.id}&practice=1`}
+          className="ml-auto"
+        />
       </div>
-    </Link>
+    </div>
   );
 }

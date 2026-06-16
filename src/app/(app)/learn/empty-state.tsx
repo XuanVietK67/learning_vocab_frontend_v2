@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   ClockIcon,
+  DumbbellIcon,
   PartyPopperIcon,
   PlusCircleIcon,
   SparklesIcon,
@@ -15,6 +16,12 @@ import type { EmptyReason } from "@/lib/me/learn/types";
 interface EmptyStateProps {
   reason: EmptyReason | null;
   nextDueAt: string | null;
+  /** This session was itself a free-practice run (changes the exhausted copy). */
+  practice?: boolean;
+  /** When set, offer a "Practice again" CTA that re-studies ignoring due dates. */
+  practiceHref?: string;
+  /** Label for the practice CTA (e.g. "Practice this deck"). */
+  practiceLabel?: string;
 }
 
 type Tint = "primary" | "violet" | "amber";
@@ -36,7 +43,23 @@ const TINT_TILE: Record<Tint, string> = {
   amber: "bg-(--amber-soft) text-(--amber-2)",
 };
 
-function copyFor(reason: EmptyReason | null, nextDueAt: string | null): Copy {
+function copyFor(
+  reason: EmptyReason | null,
+  nextDueAt: string | null,
+  practice: boolean,
+): Copy {
+  // A practice run never waits on a clock — exhaustion just means "all drilled".
+  if (practice) {
+    return {
+      icon: TrophyIcon,
+      tint: "primary",
+      title: "Drilled them all!",
+      body: "You’ve practised every word in this set. Take a breather or pick another.",
+      cta: { label: "Back to dashboard", href: "/dashboard" },
+      alt: { label: "Pick another deck", href: "/learn?mode=deck" },
+    };
+  }
+
   switch (reason) {
     case "no_due_cards":
       return {
@@ -89,9 +112,20 @@ function copyFor(reason: EmptyReason | null, nextDueAt: string | null): Copy {
 }
 
 /** Terminal empty-session screen, keyed by the server's `emptyReason`. */
-export function EmptyState({ reason, nextDueAt }: EmptyStateProps) {
-  const { icon: Icon, tint, title, body, cta, alt } = copyFor(reason, nextDueAt);
-  const showCountdown = reason === "no_due_cards" && nextDueAt;
+export function EmptyState({
+  reason,
+  nextDueAt,
+  practice = false,
+  practiceHref,
+  practiceLabel = "Practice these words",
+}: EmptyStateProps) {
+  const { icon: Icon, tint, title, body, cta, alt } = copyFor(
+    reason,
+    nextDueAt,
+    practice,
+  );
+  // In practice mode there's no clock to count down to.
+  const showCountdown = !practice && reason === "no_due_cards" && nextDueAt;
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-3.5rem)] w-full max-w-md flex-col justify-center px-4 py-10">
@@ -117,7 +151,24 @@ export function EmptyState({ reason, nextDueAt }: EmptyStateProps) {
         )}
 
         <div className="mt-7 flex flex-col gap-2.5">
-          <Link href={cta.href} className="lr-btn lr-btn--primary lr-btn--lg lr-btn--block">
+          {practiceHref && (
+            <Link
+              href={practiceHref}
+              className="lr-btn lr-btn--primary lr-btn--lg lr-btn--block"
+            >
+              <DumbbellIcon className="size-5" />
+              {practiceLabel}
+            </Link>
+          )}
+          <Link
+            href={cta.href}
+            className={cn(
+              "lr-btn lr-btn--block",
+              practiceHref
+                ? "lr-btn--ghost lr-btn--md"
+                : "lr-btn--primary lr-btn--lg",
+            )}
+          >
             {cta.label}
           </Link>
           <Link href={alt.href} className="lr-btn lr-btn--ghost lr-btn--md lr-btn--block">
