@@ -1,0 +1,54 @@
+name: CI
+
+# Quality gates for every push to master and every PR targeting it.
+# Deployment itself is handled by Vercel's GitHub integration (push-to-deploy);
+# this workflow only guards code quality before/independent of that deploy.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+# A new push to the same branch cancels the previous, still-running check.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Lint, type-check & build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          # No `cache: npm` — that requires a committed lockfile, and
+          # package-lock.json is intentionally gitignored (see below).
+
+      - name: Install dependencies
+        # Use `npm install`, not `npm ci`. The lockfile is authored on Windows,
+        # so it carries the win32 native binaries (@tailwindcss/oxide-win32-*,
+        # lightningcss-win32-*, sharp-win32) but not the Linux ones this runner
+        # needs (@tailwindcss/oxide-linux-x64-gnu, lightningcss-linux-x64-gnu,
+        # which pull picomatch@4 via tinyglobby). Strict `npm ci` rejects that
+        # mismatch on Linux; `npm install` reconciles the platform deps — the
+        # same way Vercel installs on its Linux build.
+        run: npm install --no-audit --no-fund
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check
+        run: npm run type-check
+
+      - name: Build
+        run: npm run build
+        env:
+          # The build only needs these to compile; real values live in the
+          # Vercel project settings. API_BASE_URL has a localhost fallback in
+          # src/lib/env.ts, so this is just here to make the build deterministic.
+          API_BASE_URL: http://localhost:3000
+          NEXT_PUBLIC_APP_URL: http://localhost:3001
