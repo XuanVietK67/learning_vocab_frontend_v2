@@ -10,7 +10,8 @@ export type CefrLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 export interface UserResponse {
   id: string;
   email: string;
-  username: string;
+  /** `null` for social (Google/Apple) accounts until onboarding sets it. */
+  username: string | null;
   avatarUrl: string | null;
   role: Role;
   isEmailVerified: boolean;

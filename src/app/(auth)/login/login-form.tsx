@@ -5,10 +5,10 @@ import { useActionState } from "react";
 import { loginAction } from "@/app/(auth)/actions";
 import { FieldError } from "@/components/auth/field-error";
 import { FormAlert } from "@/components/auth/form-alert";
+import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { AUTH_INPUT_CLASS } from "@/components/auth/input-style";
 import { OrDivider } from "@/components/auth/or-divider";
 import { PasswordField } from "@/components/auth/password-field";
-import { SocialButtonRow } from "@/components/auth/social-button-row";
 import { SubmitButton } from "@/components/auth/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +20,7 @@ export function LoginForm() {
 
   return (
     <div className="grid gap-5">
-      <SocialButtonRow label="Continue with Google" />
+      <GoogleSignInButton label="Continue with Google" />
 
       <OrDivider />
 
