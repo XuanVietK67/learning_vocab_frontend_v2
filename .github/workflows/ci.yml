@@ -28,7 +28,14 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        # Use `npm install`, not `npm ci`. The lockfile is authored on Windows,
+        # so it carries the win32 native binaries (@tailwindcss/oxide-win32-*,
+        # lightningcss-win32-*, sharp-win32) but not the Linux ones this runner
+        # needs (@tailwindcss/oxide-linux-x64-gnu, lightningcss-linux-x64-gnu,
+        # which pull picomatch@4 via tinyglobby). Strict `npm ci` rejects that
+        # mismatch on Linux; `npm install` reconciles the platform deps — the
+        # same way Vercel installs on its Linux build.
+        run: npm install --no-audit --no-fund
 
       - name: Lint
         run: npm run lint
