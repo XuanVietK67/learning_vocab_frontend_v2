@@ -340,6 +340,68 @@
   border-color: var(--primary-soft-2);
 }
 
+/* ============================================================
+   Auth chrome — the branded single-hero card + ornament for the
+   (auth) screens (login / register / verify-email). Lives inside
+   the .app-shell scope, so it inherits the Sprout tokens and the
+   reduced-motion rule above neutralizes both animations.
+   ============================================================ */
+.auth-card {
+  border-radius: var(--r-card);
+  border: 1px solid var(--line);
+  box-shadow: var(--sh-lg);
+  background:
+    radial-gradient(120% 120% at 0% 0%, rgba(18, 189, 138, 0.13), transparent 55%),
+    radial-gradient(120% 120% at 100% 0%, rgba(31, 159, 209, 0.11), transparent 55%),
+    var(--surface);
+  animation: learn-fadeUp 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+/* soft floating mint/sky blob behind the card — decorative only */
+.auth-ornament {
+  position: absolute;
+  z-index: 0;
+  width: 440px;
+  height: 440px;
+  top: -90px;
+  left: calc(50% - 360px);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 35%,
+    rgba(18, 189, 138, 0.4),
+    rgba(31, 159, 209, 0.22) 55%,
+    transparent 72%
+  );
+  filter: blur(46px);
+  opacity: 0.7;
+  pointer-events: none;
+  animation: auth-float 13s ease-in-out infinite;
+}
+@keyframes auth-float {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(18px, -22px) scale(1.05);
+  }
+}
+/* transparent real GIS button overlaid on the mint Google CTA: the official SDK
+   handles the click + returns the ID token, while the mint pill stays the visual.
+   Stretch the GIS-rendered element to fill the pill so the whole area is clickable. */
+.auth-google-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  opacity: 0;
+  overflow: hidden;
+  border-radius: var(--r-chip);
+}
+.auth-google-overlay > div,
+.auth-google-overlay iframe {
+  width: 100% !important;
+  height: 100% !important;
+}
+
 /* progress donut centering helper */
 .donut-wrap {
   position: relative;

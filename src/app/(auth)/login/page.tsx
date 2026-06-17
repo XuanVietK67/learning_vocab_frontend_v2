@@ -1,13 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { AuthCard } from "@/components/auth/auth-card";
 
 import { LoginForm } from "./login-form";
 
@@ -17,20 +11,17 @@ export const metadata: Metadata = {
 
 export default function LoginPage() {
   return (
-    <Card className="py-6">
-      <CardHeader className="text-center">
-        <CardTitle className="text-xl">Welcome back</CardTitle>
-        <CardDescription>Sign in to continue learning.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <LoginForm />
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          No account?{" "}
-          <Link href="/register" className="font-medium text-foreground hover:underline">
-            Sign up
-          </Link>
-        </p>
-      </CardContent>
-    </Card>
+    <AuthCard title="Welcome back" description="Sign in to continue learning.">
+      <LoginForm />
+      <p className="mt-5.5 text-center text-sm text-(--ink-2)">
+        No account?{" "}
+        <Link
+          href="/register"
+          className="font-bold text-(--primary-ink) hover:text-primary hover:underline"
+        >
+          Sign up
+        </Link>
+      </p>
+    </AuthCard>
   );
 }

@@ -63,6 +63,47 @@ export async function loginAction(
   redirect(homeFor(res.data.user));
 }
 
+/**
+ * Exchange a Google ID token (`credential` from GIS) for a session. Mirrors
+ * {@link loginAction}: on success it sets the session and redirects, so the
+ * caller only ever sees a value back when something went wrong.
+ * See docs/api/auth_google_sign_in.md.
+ */
+export async function googleAuthAction(
+  idToken: string,
+): Promise<{ error: string } | void> {
+  if (typeof idToken !== "string" || idToken.length < 20) {
+    return { error: "Google sign-in failed. Please try again." };
+  }
+
+  const res = await apiRequest<AuthResponse>("/v1/auth/google", {
+    method: "POST",
+    body: JSON.stringify({ idToken }),
+  });
+
+  if (!res.ok || !res.data) {
+    if (res.status === 503) {
+      return { error: "Google sign-in is temporarily unavailable." };
+    }
+    if (res.status === 401) {
+      const msg = firstMessage(res.error) ?? "";
+      if (msg.includes("disabled")) {
+        return { error: "This account has been disabled." };
+      }
+      if (msg.includes("not verified")) {
+        return { error: "Your Google email is not verified." };
+      }
+      return { error: "We couldn't sign you in with Google. Please try again." };
+    }
+    return {
+      error: firstMessage(res.error) ?? "We couldn't sign you in with Google.",
+    };
+  }
+
+  await setSession(res.data);
+  redirect(homeFor(res.data.user));
+}
+
 export async function registerAction(
   _prev: FormState,
   formData: FormData,
