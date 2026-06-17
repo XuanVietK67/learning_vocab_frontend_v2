@@ -16,11 +16,19 @@ so it must run on a **Node.js runtime**, not a static host.
 On every push to `master` and every PR, `ci.yml` runs:
 
 ```
-npm ci  →  npm run lint  →  npm run type-check  →  npm run build
+npm install  →  npm run lint  →  npm run type-check  →  npm run build
 ```
 
 `type-check` (`tsc --noEmit`) was added to `package.json` for this. Nothing
 to configure — it runs automatically once the workflow file is on `master`.
+
+> **Why `npm install` and no committed lockfile.** `package-lock.json` is
+> gitignored. It was being authored on Windows, so it only carried the win32
+> native binaries (`@tailwindcss/oxide`, `lightningcss`, `sharp`) and not the
+> `linux-x64-gnu` variants the Linux CI runner / Vercel need — which made the
+> stricter `npm ci` hard-fail. With no tracked lockfile, both CI and Vercel run
+> `npm install` and resolve platform-correct deps on Linux. Trade-off: transitive
+> versions aren't pinned across machines (acceptable for this project's scope).
 
 ## 2. Deploy — Vercel
 

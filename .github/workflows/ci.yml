@@ -25,7 +25,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-          cache: npm
+          # No `cache: npm` — that requires a committed lockfile, and
+          # package-lock.json is intentionally gitignored (see below).
 
       - name: Install dependencies
         # Use `npm install`, not `npm ci`. The lockfile is authored on Windows,
