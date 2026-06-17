@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { registerAction } from "@/app/(auth)/actions";
 import { FieldError } from "@/components/auth/field-error";
 import { FormAlert } from "@/components/auth/form-alert";
+import { AUTH_INPUT_CLASS } from "@/components/auth/input-style";
 import { OrDivider } from "@/components/auth/or-divider";
 import { PasswordField } from "@/components/auth/password-field";
 import { SocialButtonRow } from "@/components/auth/social-button-row";
@@ -19,12 +20,18 @@ export function RegisterForm() {
   const emailErrors = state.fieldErrors?.email;
 
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-5">
+      <SocialButtonRow label="Sign up with Google" />
+
+      <OrDivider />
+
       <form action={formAction} className="grid gap-4" noValidate>
         <FormAlert message={state.error} />
 
         <div className="grid gap-2">
-          <Label htmlFor="username">Username</Label>
+          <Label htmlFor="username" className="text-[13px] font-semibold text-(--ink)">
+            Username
+          </Label>
           <Input
             id="username"
             name="username"
@@ -36,13 +43,15 @@ export function RegisterForm() {
             placeholder="alice_99"
             aria-invalid={Boolean(usernameErrors?.length)}
             aria-describedby={usernameErrors?.length ? "username-error" : undefined}
-            className="h-11"
+            className={AUTH_INPUT_CLASS}
           />
           <FieldError id="username-error" messages={usernameErrors} />
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email" className="text-[13px] font-semibold text-(--ink)">
+            Email
+          </Label>
           <Input
             id="email"
             name="email"
@@ -53,7 +62,7 @@ export function RegisterForm() {
             placeholder="you@example.com"
             aria-invalid={Boolean(emailErrors?.length)}
             aria-describedby={emailErrors?.length ? "email-error" : undefined}
-            className="h-11"
+            className={AUTH_INPUT_CLASS}
           />
           <FieldError id="email-error" messages={emailErrors} />
         </div>
@@ -67,11 +76,10 @@ export function RegisterForm() {
           placeholder="At least 8 characters"
         />
 
-        <SubmitButton pendingLabel="Creating account…">Create account</SubmitButton>
+        <SubmitButton variant="secondary" pendingLabel="Creating account…">
+          Create account
+        </SubmitButton>
       </form>
-
-      <OrDivider />
-      <SocialButtonRow />
     </div>
   );
 }

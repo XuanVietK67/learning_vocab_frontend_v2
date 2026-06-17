@@ -6,9 +6,9 @@ export function FormAlert({ message }: { message?: string }) {
   return (
     <div
       role="alert"
-      className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
+      className="flex items-start gap-2 rounded-2xl bg-(--bad-soft) px-3.5 py-3 text-sm font-medium text-(--bad-ink)"
     >
-      <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" />
+      <TriangleAlertIcon className="mt-px size-4 shrink-0" />
       <span>{message}</span>
     </div>
   );
