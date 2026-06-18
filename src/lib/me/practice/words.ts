@@ -9,9 +9,10 @@
  * Server-Action-only) and degrade to an empty result rather than throwing, so a
  * cold/erroring backend lands the user on the hub instead of a blank screen.
  */
-import { apiRequest } from "../../api";
-import { getAccessToken } from "../../auth/session";
+
+import { getAccessToken } from "@/lib/auth/session";
 import type { PracticeWord } from "./types";
+import { apiRequest } from "@/lib/api";
 
 /** Minimal sense subset we read a gloss from (mirrors the API sense tree). */
 interface RawSense {
