@@ -27,10 +27,37 @@ interface GoogleButtonOptions {
   logo_alignment?: "left" | "center";
 }
 
+/** One Tap "moment" notification — exposes why the prompt was/wasn't shown. */
+interface GooglePromptNotification {
+  getMomentType: () => "display" | "skipped" | "dismissed";
+  isDisplayed: () => boolean;
+  isNotDisplayed: () => boolean;
+  getNotDisplayedReason: () =>
+    | "browser_not_supported"
+    | "invalid_client"
+    | "missing_client_id"
+    | "opt_out_or_no_session"
+    | "secure_http_required"
+    | "suppressed_by_user"
+    | "unregistered_origin"
+    | "unknown_reason";
+  isSkippedMoment: () => boolean;
+  getSkippedReason: () =>
+    | "auto_cancel"
+    | "user_cancel"
+    | "tap_outside"
+    | "issuing_failed";
+  isDismissedMoment: () => boolean;
+  getDismissedReason: () =>
+    | "credential_returned"
+    | "cancel_called"
+    | "flow_restarted";
+}
+
 interface GoogleAccountsId {
   initialize: (config: GoogleIdConfiguration) => void;
   renderButton: (parent: HTMLElement, options: GoogleButtonOptions) => void;
-  prompt: () => void;
+  prompt: (callback?: (notification: GooglePromptNotification) => void) => void;
   cancel: () => void;
 }
 

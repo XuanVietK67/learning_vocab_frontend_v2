@@ -12,6 +12,14 @@ import { cn } from "@/lib/utils";
 const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 const GIS_SRC = "https://accounts.google.com/gsi/client";
 
+// TEMP debug instrumentation for the Google sign-in failure on prod.
+// Remove this (and the [GAUTH] logs below) once the cause is found.
+const DEBUG_AUTH = true;
+function glog(...args: unknown[]) {
+  // console.warn so the line shows even under a restrictive console level filter.
+  if (DEBUG_AUTH) console.warn("[GAUTH]", ...args);
+}
+
 interface GoogleSignInButtonProps {
   /** Button label — "Continue with Google" (sign in) or "Sign up with Google". */
   label: string;
@@ -30,33 +38,77 @@ export function GoogleSignInButton({ label }: GoogleSignInButtonProps) {
   const [pending, startTransition] = useTransition();
 
   const handleCredential = useCallback((credential: string) => {
+    glog("credential received, len:", credential.length);
     startTransition(async () => {
       const result = await googleAuthAction(credential);
+      glog("action result:", result ?? "redirected (success)");
       // On success the action redirects; we only get here on failure.
       if (result?.error) toast.error(result.error);
     });
   }, []);
 
   useEffect(() => {
-    if (!CLIENT_ID || !scriptReady || !window.google || !overlayRef.current) return;
-
-    window.google.accounts.id.initialize({
-      client_id: CLIENT_ID,
-      callback: ({ credential }) => {
-        if (credential) handleCredential(credential);
-      },
-      use_fedcm_for_prompt: true,
+    glog("effect run", {
+      hasClientId: Boolean(CLIENT_ID),
+      clientId: CLIENT_ID,
+      origin: typeof window !== "undefined" ? window.location.origin : "(ssr)",
+      href: typeof window !== "undefined" ? window.location.href : "(ssr)",
+      scriptReady,
+      hasWindowGoogle: typeof window !== "undefined" && Boolean(window.google),
+      hasOverlay: Boolean(overlayRef.current),
     });
+
+    if (!CLIENT_ID || !scriptReady || !window.google || !overlayRef.current) {
+      glog("effect bailed — a precondition is false (see flags above)");
+      return;
+    }
+
+    try {
+      window.google.accounts.id.initialize({
+        client_id: CLIENT_ID,
+        callback: ({ credential }) => {
+          glog("GIS callback fired, credential present:", Boolean(credential));
+          if (credential) handleCredential(credential);
+        },
+        // TEMP: FedCM off so prompt() can report a machine-readable reason below.
+        use_fedcm_for_prompt: false,
+      });
+      glog("initialize() ok");
+    } catch (err) {
+      glog("initialize() THREW:", err);
+    }
 
     // Clear any prior render (e.g. navigating login <-> register) before redrawing.
     overlayRef.current.replaceChildren();
-    window.google.accounts.id.renderButton(overlayRef.current, {
-      type: "standard",
-      theme: "outline",
-      size: "large",
-      text: label.startsWith("Sign up") ? "signup_with" : "continue_with",
-      width: 400,
-    });
+    try {
+      window.google.accounts.id.renderButton(overlayRef.current, {
+        type: "standard",
+        theme: "outline",
+        size: "large",
+        text: label.startsWith("Sign up") ? "signup_with" : "continue_with",
+        width: 400,
+      });
+      glog("renderButton() ok");
+    } catch (err) {
+      glog("renderButton() THREW:", err);
+    }
+
+    // TEMP probe: ask GIS to show One Tap and report WHY it would/wouldn't.
+    // This shares the same client-id/origin validation as the button click, so
+    // its reason (e.g. "unregistered_origin", "invalid_client") explains the
+    // button's silent failure too.
+    try {
+      window.google.accounts.id.prompt((n) => {
+        const detail: Record<string, unknown> = { moment: n.getMomentType() };
+        if (n.isNotDisplayed()) detail.notDisplayedReason = n.getNotDisplayedReason();
+        if (n.isSkippedMoment()) detail.skippedReason = n.getSkippedReason();
+        if (n.isDismissedMoment()) detail.dismissedReason = n.getDismissedReason();
+        glog("prompt() moment:", detail);
+      });
+      glog("prompt() called");
+    } catch (err) {
+      glog("prompt() THREW:", err);
+    }
   }, [scriptReady, handleCredential, label]);
 
   // No client ID configured: keep a working, non-broken button.
@@ -84,8 +136,14 @@ export function GoogleSignInButton({ label }: GoogleSignInButtonProps) {
       <Script
         src={GIS_SRC}
         strategy="afterInteractive"
-        onReady={() => setScriptReady(true)}
-        onError={() => setScriptError(true)}
+        onReady={() => {
+          glog("GIS script onReady");
+          setScriptReady(true);
+        }}
+        onError={(e) => {
+          glog("GIS script onError:", e);
+          setScriptError(true);
+        }}
       />
       <div className="relative rounded-full focus-within:ring-3 focus-within:ring-ring/50">
         <MintGoogleButton label={label} pending={pending} decorative />
