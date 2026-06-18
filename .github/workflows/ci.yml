@@ -1,8 +1,11 @@
 name: CI
 
-# Quality gates for every push to master and every PR targeting it.
-# Deployment itself is handled by Vercel's GitHub integration (push-to-deploy);
-# this workflow only guards code quality before/independent of that deploy.
+# Quality gates + gated production deploy.
+#  - `verify` runs on every push to master and every PR targeting it.
+#  - `deploy` runs ONLY after `verify` passes on a push to master (i.e. once a
+#    PR is merged). PRs never deploy to production — they only get a Vercel
+#    preview URL (from Vercel's Git integration), and production on master is
+#    disabled in vercel.json so this job is the single source of prod deploys.
 
 on:
   push:
@@ -52,3 +55,39 @@ jobs:
           # src/lib/env.ts, so this is just here to make the build deterministic.
           API_BASE_URL: http://localhost:3000
           NEXT_PUBLIC_APP_URL: http://localhost:3001
+
+  deploy:
+    name: Deploy to Vercel (production)
+    needs: verify
+    # `verify` already gates this. The push-only guard means PRs never reach
+    # here; since on.push.branches is [master], a push event is always master.
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    # environment:
+    #   name: production
+    #   url: ${{ steps.deploy.outputs.url }}
+    env:
+      # Identify the Vercel project without interactive `vercel link`.
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel project settings & production env
+        # Brings down API_BASE_URL, NEXT_PUBLIC_* etc. configured in the Vercel
+        # dashboard so the build below matches a real Vercel production build.
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build (Vercel, production)
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy prebuilt output to production
+        id: deploy
+        run: echo "url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})" >> "$GITHUB_OUTPUT"
