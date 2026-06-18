@@ -2,36 +2,29 @@ import Link from "next/link";
 
 import { BrandMark } from "@/components/brand-mark";
 
-/** Minimal marketing footer. */
+/** Minimal marketing footer — warm and quiet; the energy lives above it. */
 export function LandingFooter() {
   return (
-    <footer className="border-t border-border/60">
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-4 py-10 sm:flex-row sm:px-6">
-        <div className="flex flex-col items-center gap-2 sm:items-start">
-          <BrandMark />
-          <p className="text-sm text-muted-foreground">
-            Learn vocabulary in context.
-          </p>
-        </div>
-        <nav className="flex items-center gap-6 text-sm">
+    <footer className="border-t border-(--line) bg-(--app-bg)">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-5 px-4 py-9 sm:px-6">
+        <BrandMark />
+        <nav className="flex flex-wrap items-center gap-6 text-sm font-semibold">
           <Link
             href="/login"
-            className="text-muted-foreground transition-colors hover:text-foreground"
+            className="text-(--ink-2) transition-colors hover:text-(--primary-ink)"
           >
             Log in
           </Link>
           <Link
             href="/register"
-            className="text-muted-foreground transition-colors hover:text-foreground"
+            className="text-(--ink-2) transition-colors hover:text-(--primary-ink)"
           >
             Sign up
           </Link>
         </nav>
-      </div>
-      <div className="border-t border-border/60 py-4">
-        <p className="text-center text-xs text-muted-foreground">
+        <span className="text-sm text-(--ink-3)">
           © {new Date().getFullYear()} Vocab
-        </p>
+        </span>
       </div>
     </footer>
   );

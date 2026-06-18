@@ -6,12 +6,14 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 interface Feature {
   icon: LucideIcon;
   title: string;
   description: string;
+  /** Soft chip color for the icon — one accent per pillar, matched to meaning. */
+  chip: string;
 }
 
 const FEATURES: Feature[] = [
@@ -19,58 +21,69 @@ const FEATURES: Feature[] = [
     icon: MessagesSquareIcon,
     title: "Learn in context",
     description:
-      "Six question types generated from real sentences — cloze, meaning-in-context, sentence building, listening, and more.",
+      "Words live in real sentences, not isolated lists, so the meaning sticks.",
+    chip: "bg-(--primary-soft) text-(--primary-ink)",
   },
   {
     icon: RefreshCwIcon,
     title: "Spaced repetition",
     description:
-      "An SM-2 scheduler with Anki-style learning steps plans every review for the moment you're about to forget.",
+      "A proven schedule resurfaces each word right on time, never wasted.",
+    chip: "bg-(--sky-soft) text-(--sky)",
   },
   {
     icon: LayersIcon,
-    title: "Topics & decks",
+    title: "Topics and decks",
     description:
-      "Study by topic or curated deck, or build your own decks from words you add to your personal catalog.",
+      "Study by topic, pick a curated deck, or build your own from words you add.",
+    chip: "bg-(--violet-soft) text-(--violet)",
   },
   {
     icon: FlameIcon,
-    title: "Streaks & goals",
+    title: "Streaks and goals",
     description:
-      "Daily-minute goals, streaks, and mastery tracking turn steady practice into a habit you keep.",
+      "Daily goals and streaks keep your momentum going day after day.",
+    chip: "bg-(--amber-soft) text-(--amber-2)",
   },
 ];
 
-/** Four-up grid of product pillars. */
+/** Four-up grid of product pillars, one accent per pillar. */
 export function Features() {
   return (
-    <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
-      <div className="flex max-w-xl flex-col gap-3">
-        <h2 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
-          Built to make words stick
-        </h2>
-        <p className="text-lg text-muted-foreground">
-          Every part of the app is designed around one idea: you remember words
-          you&apos;ve met in context.
-        </p>
-      </div>
+    <section className="py-24">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="mk-reveal mb-12 max-w-xl">
+          <div className="mb-3.5 text-xs font-bold tracking-[0.12em] text-(--ink-3) uppercase">
+            Why it works
+          </div>
+          <h2 className="font-(family-name:--serif) text-3xl font-medium tracking-tight text-(--ink) sm:text-4xl">
+            Built around how memory actually works
+          </h2>
+        </div>
 
-      <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {FEATURES.map((feature) => (
-          <Card key={feature.title} className="h-full">
-            <CardContent className="flex h-full flex-col gap-3">
-              <span className="flex size-10 items-center justify-center rounded-lg bg-muted text-foreground">
-                <feature.icon className="size-5" />
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {FEATURES.map((feature) => (
+            <div
+              key={feature.title}
+              className="lr-card hoverlift mk-reveal h-full p-7"
+            >
+              <span
+                className={cn(
+                  "mb-4.5 flex size-13 items-center justify-center rounded-(--r-tile)",
+                  feature.chip,
+                )}
+              >
+                <feature.icon className="size-6" />
               </span>
-              <h3 className="font-heading text-lg font-medium tracking-tight">
+              <h3 className="mb-2 text-lg font-extrabold tracking-tight text-(--ink)">
                 {feature.title}
               </h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm leading-relaxed text-(--ink-2)">
                 {feature.description}
               </p>
-            </CardContent>
-          </Card>
-        ))}
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );

@@ -1,22 +1,50 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+
+/** Soft chip colors cycled across the topic wrap for an energetic catalog feel. */
+const TOPIC_STYLES = [
+  "bg-(--primary-soft) text-(--primary-ink)",
+  "bg-(--sky-soft) text-(--sky)",
+  "bg-(--violet-soft) text-(--violet)",
+  "bg-(--amber-soft) text-(--amber-2)",
+] as const;
 
 const TOPICS = [
-  "Food & Drink",
   "Travel",
-  "Education",
+  "Food & Cooking",
   "Business",
-  "Nature",
-  "Technology",
-  "Health",
-  "Sport",
   "Daily Life",
   "Science",
+  "Health",
+  "Technology",
+  "Nature",
+  "Culture",
+  "Sports",
+  "Music",
+  "News",
 ] as const;
 
 const DECKS = [
-  { name: "Travel Essentials", level: "A2", count: 50 },
-  { name: "Business Email", level: "B1", count: 40 },
-  { name: "Everyday Verbs", level: "A1", count: 60 },
+  {
+    name: "Café & Restaurant",
+    level: "A2",
+    meta: "48 words · ordering, menus, paying",
+    words: ["bill", "reserve", "recommend"],
+    badge: "bg-(--primary-soft) text-(--primary-ink)",
+  },
+  {
+    name: "Startup & Work",
+    level: "B1",
+    meta: "60 words · meetings, email, roadmaps",
+    words: ["deadline", "launch", "feedback"],
+    badge: "bg-(--violet-soft) text-(--violet)",
+  },
+  {
+    name: "Travel Essentials",
+    level: "A2",
+    meta: "52 words · airports, hotels, directions",
+    words: ["boarding", "luggage", "nearby"],
+    badge: "bg-(--primary-soft) text-(--primary-ink)",
+  },
 ] as const;
 
 /**
@@ -25,46 +53,62 @@ const DECKS = [
  */
 export function Showcase() {
   return (
-    <section className="border-t border-border/60 bg-muted/30">
-      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
-        <div className="flex max-w-xl flex-col gap-3">
-          <h2 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
-            A catalog worth exploring
+    <section className="mk-band-sky py-24">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="mk-reveal mx-auto mb-10 max-w-xl text-center">
+          <div className="mb-3.5 text-xs font-bold tracking-[0.12em] text-(--ink-3) uppercase">
+            A taste of the catalog
+          </div>
+          <h2 className="mb-3.5 font-(family-name:--serif) text-3xl font-medium tracking-tight text-(--ink) sm:text-4xl">
+            Topics for the words you actually use
           </h2>
-          <p className="text-lg text-muted-foreground">
-            Thousands of curated words across topics and ready-made decks — plus
-            the words you add yourself.
+          <p className="text-lg leading-relaxed text-(--ink-2)">
+            A representative sample of the decks and topics waiting inside.
           </p>
         </div>
 
-        <div className="mt-10 flex flex-wrap gap-2">
-          {TOPICS.map((topic) => (
+        <div className="mk-reveal mx-auto mb-12 flex max-w-3xl flex-wrap justify-center gap-2.5">
+          {TOPICS.map((topic, index) => (
             <span
               key={topic}
-              className="rounded-full border border-border bg-background px-3.5 py-1.5 text-sm font-medium text-foreground"
+              className={cn(
+                "rounded-full px-4 py-2 text-sm font-bold",
+                TOPIC_STYLES[index % TOPIC_STYLES.length],
+              )}
             >
               {topic}
             </span>
           ))}
         </div>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-3">
           {DECKS.map((deck) => (
-            <Card key={deck.name}>
-              <CardContent className="flex items-center justify-between gap-3">
-                <div className="flex flex-col gap-1">
-                  <span className="font-heading font-medium tracking-tight">
-                    {deck.name}
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    {deck.count} words
-                  </span>
-                </div>
-                <span className="rounded-md bg-muted px-2 py-1 text-xs font-semibold text-muted-foreground">
+            <div key={deck.name} className="lr-card hoverlift mk-reveal p-6">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h3 className="text-lg font-extrabold tracking-tight text-(--ink)">
+                  {deck.name}
+                </h3>
+                <span
+                  className={cn(
+                    "rounded-full px-2.5 py-1 text-xs font-bold",
+                    deck.badge,
+                  )}
+                >
                   {deck.level}
                 </span>
-              </CardContent>
-            </Card>
+              </div>
+              <p className="mb-4 text-sm text-(--ink-3)">{deck.meta}</p>
+              <div className="flex flex-wrap gap-2">
+                {deck.words.map((word) => (
+                  <span
+                    key={word}
+                    className="rounded-full border border-(--line-2) bg-(--card-2) px-3 py-1.5 text-[13px] font-semibold text-(--ink-2)"
+                  >
+                    {word}
+                  </span>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </div>
