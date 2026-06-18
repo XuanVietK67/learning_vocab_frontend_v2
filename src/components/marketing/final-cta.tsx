@@ -1,31 +1,30 @@
 import Link from "next/link";
 import { ArrowRightIcon } from "lucide-react";
 
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-
-/** Closing conversion band. */
+/** Closing conversion band: a saturated colored crescendo, not the old black band. */
 export function FinalCta() {
   return (
-    <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-24">
-      <div className="flex flex-col items-center gap-6 rounded-2xl bg-foreground px-6 py-14 text-center text-background sm:px-12">
-        <h2 className="font-heading max-w-2xl text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-          Start learning in two minutes
+    <section className="px-4 pt-10 pb-24 sm:px-6">
+      <div className="mk-cta-band mk-reveal relative mx-auto max-w-[1104px] overflow-hidden rounded-[40px] px-6 py-20 text-center shadow-(--sh-lg) sm:px-10">
+        <h2 className="mb-4 font-(family-name:--serif) text-3xl font-medium tracking-tight text-balance text-white sm:text-4xl lg:text-[46px]">
+          Start learning words that stay.
         </h2>
-        <p className="max-w-md text-lg text-background/70 text-pretty">
-          Create a free account, pick your languages, and answer your first
-          question today.
+        <p className="mx-auto mb-8 max-w-md text-lg leading-relaxed text-white/90">
+          Free to start, no card required. Your first words are five minutes
+          away.
         </p>
-        <Link
-          href="/register"
-          className={cn(
-            buttonVariants({ variant: "outline" }),
-            "h-11 gap-2 border-transparent bg-background px-6 text-base text-foreground hover:bg-background/90",
-          )}
-        >
-          Create free account
-          <ArrowRightIcon className="size-4" />
-        </Link>
+        <div className="flex flex-wrap justify-center gap-3.5">
+          <Link href="/register" className="lr-btn lr-btn--amber lr-btn--md">
+            Get started free
+            <ArrowRightIcon className="size-5" />
+          </Link>
+          <Link
+            href="/login"
+            className="inline-flex h-12 items-center rounded-full border-[1.5px] border-white/50 bg-white/15 px-6 text-[17px] font-bold text-white transition-colors hover:bg-white/25"
+          >
+            Log in
+          </Link>
+        </div>
       </div>
     </section>
   );

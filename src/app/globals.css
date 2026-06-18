@@ -222,10 +222,12 @@
    onto the authenticated user home + nav (homepage redesign,
    Direction B "Trophy Room"). Same tokens as .learn-shell so the
    reused .lr-* atoms and shadcn primitives inherit mint here too.
-   Scoped to .app-shell (set on the (app) layout root); NOT global,
-   and NOT applied to /admin. Light theme only.
+   Scoped to .app-shell (the (app) layout root) and .marketing-shell
+   (the logged-out landing root); NOT global, and NOT applied to
+   /admin. Light theme only.
    ============================================================ */
-.app-shell {
+.app-shell,
+.marketing-shell {
   /* shadcn token overrides (Sprout mint) — reused primitives inherit these */
   --primary: #12bd8a;
   --primary-foreground: #ffffff;
@@ -338,6 +340,62 @@
   transform: translateY(-3px);
   box-shadow: var(--sh-lg);
   border-color: var(--primary-soft-2);
+}
+
+/* ============================================================
+   Marketing landing — the logged-out storefront (/) re-skinned
+   onto Sprout. Reuses the .app-shell token block above (shared
+   selector) plus these landing-only flourishes: the page field,
+   the section-band washes, the colored final-CTA band, the hero
+   ornaments, and a pure-CSS scroll reveal. Light theme only;
+   reduced-motion is handled by the rule near the bottom.
+   ============================================================ */
+.marketing-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(18, 189, 138, 0.07), transparent 60%),
+    var(--app-bg);
+}
+/* alternating section-band washes (replace the old bg-muted grey) */
+.mk-band-mint {
+  background:
+    linear-gradient(180deg, var(--primary-soft) 0%, rgba(224, 246, 238, 0) 100%),
+    var(--app-bg);
+}
+.mk-band-sky {
+  background:
+    linear-gradient(180deg, rgba(31, 159, 209, 0.06) 0%, rgba(31, 159, 209, 0) 100%),
+    var(--app-bg);
+}
+/* the closing colour crescendo — mint → sky, not the old black band */
+.mk-cta-band {
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(255, 255, 255, 0.22), transparent 55%),
+    linear-gradient(120deg, var(--primary) 0%, var(--primary-press) 38%, var(--sky) 100%);
+}
+/* pure-CSS scroll reveal: scroll-driven where animation-timeline is
+   supported, an instant show (no hidden flash) where it is not. */
+.mk-reveal {
+  animation: mk-reveal both;
+  animation-timeline: view();
+  animation-range: entry 0% cover 32%;
+}
+@keyframes mk-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marketing-shell .mk-reveal {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* ============================================================
@@ -1444,6 +1502,7 @@
 @media (prefers-reduced-motion: reduce) {
   .learn-shell *,
   .app-shell *,
+  .marketing-shell *,
   .learn-confetti__bit {
     animation-duration: 0.001s !important;
     animation-iteration-count: 1 !important;

@@ -1,48 +1,71 @@
+import { RefreshCwIcon } from "lucide-react";
+
+import { cn } from "@/lib/utils";
+
 const STEPS = [
   {
-    title: "Tell us your languages & level",
+    title: "Meet the word",
     description:
-      "Pick what you speak and what you're learning. We tune the catalog to your CEFR level so words are never too easy or too hard.",
+      "See it inside a real sentence with native audio, never on a bare flashcard.",
+    disc: "bg-(--primary) shadow-(--sh-primary)",
   },
   {
-    title: "Answer in-context questions",
+    title: "Use it in context",
     description:
-      "Fill blanks, match meanings, build sentences, train your ear. Every prompt is generated from a real example sentence.",
+      "Fill the blank and pick the word that fits the meaning, building real recall.",
+    disc: "bg-(--sky) shadow-[0_8px_18px_-5px_rgba(31,159,209,.5)]",
   },
   {
-    title: "We schedule each word for you",
+    title: "Review on schedule",
     description:
-      "A spaced-repetition engine resurfaces every word right before you'd forget it — so reviews stay short and effective.",
+      "Spaced repetition brings each word back at exactly the right moment.",
+    disc: "bg-(--amber-2) shadow-(--sh-amber)",
   },
 ] as const;
 
 /** Three-step explainer of the core learning loop. */
 export function HowItWorks() {
   return (
-    <section className="border-t border-border/60 bg-muted/30">
-      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
-        <div className="flex max-w-xl flex-col gap-3">
-          <h2 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
-            Three steps to your first review
+    <section className="mk-band-mint py-24">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="mk-reveal mx-auto mb-14 max-w-xl text-center">
+          <div className="mb-3.5 text-xs font-bold tracking-[0.12em] text-(--ink-3) uppercase">
+            The loop
+          </div>
+          <h2 className="mb-3.5 font-(family-name:--serif) text-3xl font-medium tracking-tight text-(--ink) sm:text-4xl">
+            Three steps that turn into a habit
           </h2>
-          <p className="text-lg text-muted-foreground">
-            No setup busywork — you&apos;ll be answering questions within a minute.
+          <p className="text-lg leading-relaxed text-(--ink-2)">
+            See it, use it, then review it right before you would forget. The
+            loop is the whole product.
           </p>
         </div>
 
-        <ol className="mt-12 grid gap-10 sm:grid-cols-3">
+        <ol className="grid gap-5 sm:grid-cols-3">
           {STEPS.map((step, index) => (
-            <li key={step.title} className="flex flex-col gap-3">
-              <span className="flex size-9 items-center justify-center rounded-full bg-foreground text-sm font-semibold text-background">
+            <li key={step.title} className="lr-card mk-reveal p-7">
+              <span
+                className={cn(
+                  "mb-5 flex size-14 items-center justify-center rounded-full text-[22px] font-extrabold text-white",
+                  step.disc,
+                )}
+              >
                 {index + 1}
               </span>
-              <h3 className="font-heading text-lg font-medium tracking-tight">
+              <h3 className="mb-2 text-xl font-extrabold tracking-tight text-(--ink)">
                 {step.title}
               </h3>
-              <p className="text-muted-foreground">{step.description}</p>
+              <p className="leading-relaxed text-(--ink-2)">{step.description}</p>
             </li>
           ))}
         </ol>
+
+        <div className="mk-reveal mt-8 flex justify-center">
+          <span className="inline-flex items-center gap-2 rounded-full bg-(--primary-soft) px-4 py-2.5 text-sm font-bold text-(--primary-ink)">
+            <RefreshCwIcon className="size-4" />
+            And it repeats, every day
+          </span>
+        </div>
       </div>
     </section>
   );
