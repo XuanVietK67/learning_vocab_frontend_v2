@@ -385,23 +385,6 @@
     transform: translate(18px, -22px) scale(1.05);
   }
 }
-/* transparent real GIS button overlaid on the mint Google CTA: the official SDK
-   handles the click + returns the ID token, while the mint pill stays the visual.
-   Stretch the GIS-rendered element to fill the pill so the whole area is clickable. */
-.auth-google-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  opacity: 0;
-  overflow: hidden;
-  border-radius: var(--r-chip);
-}
-.auth-google-overlay > div,
-.auth-google-overlay iframe {
-  width: 100% !important;
-  height: 100% !important;
-}
-
 /* progress donut centering helper */
 .donut-wrap {
   position: relative;

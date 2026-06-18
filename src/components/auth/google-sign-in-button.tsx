@@ -11,14 +11,9 @@ import { cn } from "@/lib/utils";
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 const GIS_SRC = "https://accounts.google.com/gsi/client";
-
-// TEMP debug instrumentation for the Google sign-in failure on prod.
-// Remove this (and the [GAUTH] logs below) once the cause is found.
-const DEBUG_AUTH = true;
-function glog(...args: unknown[]) {
-  // console.warn so the line shows even under a restrictive console level filter.
-  if (DEBUG_AUTH) console.warn("[GAUTH]", ...args);
-}
+// `openid` makes Google return an id_token at code exchange; email/profile
+// populate the user record. See docs/api/auth_google_sign_in.md.
+const SCOPES = "openid email profile";
 
 interface GoogleSignInButtonProps {
   /** Button label — "Continue with Google" (sign in) or "Sign up with Google". */
@@ -26,90 +21,53 @@ interface GoogleSignInButtonProps {
 }
 
 /**
- * Google sign-in via Google Identity Services. The mint pill is the visual; the
- * real GIS button is rendered transparently on top (`.auth-google-overlay`) so
- * the official SDK handles the click and yields the ID token, which a Server
- * Action exchanges for a session. See docs/api/auth_google_sign_in.md.
+ * Google sign-in via the GIS OAuth 2.0 authorization-code popup flow. Our own
+ * mint button calls {@link GoogleCodeClient.requestCode} on click, opening
+ * Google's popup; the returned authorization `code` is handed to a Server
+ * Action which exchanges it for a session.
+ *
+ * We use the code flow (not GIS `renderButton`) so the button can be fully
+ * styled — Google forbids restyling its rendered button, and hiding it under
+ * an overlay is blocked by its anti-clickjacking checks on real origins.
+ * See docs/api/auth_google_sign_in.md.
  */
 export function GoogleSignInButton({ label }: GoogleSignInButtonProps) {
-  const overlayRef = useRef<HTMLDivElement>(null);
+  const codeClientRef = useRef<GoogleCodeClient | null>(null);
   const [scriptReady, setScriptReady] = useState(false);
   const [scriptError, setScriptError] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  const handleCredential = useCallback((credential: string) => {
-    glog("credential received, len:", credential.length);
+  const handleCode = useCallback((code: string) => {
     startTransition(async () => {
-      const result = await googleAuthAction(credential);
-      glog("action result:", result ?? "redirected (success)");
+      const result = await googleAuthAction(code);
       // On success the action redirects; we only get here on failure.
       if (result?.error) toast.error(result.error);
     });
   }, []);
 
+  // Build the code client once GIS is ready; the button's onClick drives it.
   useEffect(() => {
-    glog("effect run", {
-      hasClientId: Boolean(CLIENT_ID),
-      clientId: CLIENT_ID,
-      origin: typeof window !== "undefined" ? window.location.origin : "(ssr)",
-      href: typeof window !== "undefined" ? window.location.href : "(ssr)",
-      scriptReady,
-      hasWindowGoogle: typeof window !== "undefined" && Boolean(window.google),
-      hasOverlay: Boolean(overlayRef.current),
+    if (!CLIENT_ID || !scriptReady || !window.google) return;
+
+    codeClientRef.current = window.google.accounts.oauth2.initCodeClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      ux_mode: "popup",
+      callback: (response) => {
+        if (response.code) handleCode(response.code);
+        else toast.error("We couldn't sign you in with Google. Please try again.");
+      },
+      error_callback: (err) => {
+        // A user closing the popup isn't an error worth surfacing.
+        if (err.type === "popup_closed") return;
+        toast.error("Google sign-in is unavailable right now.");
+      },
     });
+  }, [scriptReady, handleCode]);
 
-    if (!CLIENT_ID || !scriptReady || !window.google || !overlayRef.current) {
-      glog("effect bailed — a precondition is false (see flags above)");
-      return;
-    }
-
-    try {
-      window.google.accounts.id.initialize({
-        client_id: CLIENT_ID,
-        callback: ({ credential }) => {
-          glog("GIS callback fired, credential present:", Boolean(credential));
-          if (credential) handleCredential(credential);
-        },
-        // TEMP: FedCM off so prompt() can report a machine-readable reason below.
-        use_fedcm_for_prompt: false,
-      });
-      glog("initialize() ok");
-    } catch (err) {
-      glog("initialize() THREW:", err);
-    }
-
-    // Clear any prior render (e.g. navigating login <-> register) before redrawing.
-    overlayRef.current.replaceChildren();
-    try {
-      window.google.accounts.id.renderButton(overlayRef.current, {
-        type: "standard",
-        theme: "outline",
-        size: "large",
-        text: label.startsWith("Sign up") ? "signup_with" : "continue_with",
-        width: 400,
-      });
-      glog("renderButton() ok");
-    } catch (err) {
-      glog("renderButton() THREW:", err);
-    }
-
-    // TEMP probe: ask GIS to show One Tap and report WHY it would/wouldn't.
-    // This shares the same client-id/origin validation as the button click, so
-    // its reason (e.g. "unregistered_origin", "invalid_client") explains the
-    // button's silent failure too.
-    try {
-      window.google.accounts.id.prompt((n) => {
-        const detail: Record<string, unknown> = { moment: n.getMomentType() };
-        if (n.isNotDisplayed()) detail.notDisplayedReason = n.getNotDisplayedReason();
-        if (n.isSkippedMoment()) detail.skippedReason = n.getSkippedReason();
-        if (n.isDismissedMoment()) detail.dismissedReason = n.getDismissedReason();
-        glog("prompt() moment:", detail);
-      });
-      glog("prompt() called");
-    } catch (err) {
-      glog("prompt() THREW:", err);
-    }
-  }, [scriptReady, handleCredential, label]);
+  const signIn = useCallback(() => {
+    codeClientRef.current?.requestCode();
+  }, []);
 
   // No client ID configured: keep a working, non-broken button.
   if (!CLIENT_ID) {
@@ -136,22 +94,15 @@ export function GoogleSignInButton({ label }: GoogleSignInButtonProps) {
       <Script
         src={GIS_SRC}
         strategy="afterInteractive"
-        onReady={() => {
-          glog("GIS script onReady");
-          setScriptReady(true);
-        }}
-        onError={(e) => {
-          glog("GIS script onError:", e);
-          setScriptError(true);
-        }}
+        onReady={() => setScriptReady(true)}
+        onError={() => setScriptError(true)}
       />
-      <div className="relative rounded-full focus-within:ring-3 focus-within:ring-ring/50">
-        <MintGoogleButton label={label} pending={pending} decorative />
-        <div
-          ref={overlayRef}
-          className={cn("auth-google-overlay", pending && "pointer-events-none")}
-        />
-      </div>
+      <MintGoogleButton
+        label={label}
+        pending={pending}
+        disabled={!scriptReady}
+        onClick={signIn}
+      />
     </>
   );
 }
@@ -159,22 +110,18 @@ export function GoogleSignInButton({ label }: GoogleSignInButtonProps) {
 interface MintGoogleButtonProps {
   label: string;
   pending?: boolean;
-  /** Render as a purely visual layer (the real control is the GIS overlay). */
-  decorative?: boolean;
+  disabled?: boolean;
   onClick?: () => void;
 }
 
-function MintGoogleButton({ label, pending, decorative, onClick }: MintGoogleButtonProps) {
+function MintGoogleButton({ label, pending, disabled, onClick }: MintGoogleButtonProps) {
   return (
     <Button
       type="button"
       onClick={onClick}
-      disabled={pending}
-      aria-hidden={decorative}
-      tabIndex={decorative ? -1 : undefined}
+      disabled={pending || disabled}
       className={cn(
         "h-13.5 w-full justify-center gap-3 rounded-full text-base font-bold shadow-(--sh-primary) hover:bg-(--primary-press) active:translate-y-px",
-        decorative && "pointer-events-none",
       )}
     >
       {pending ? (

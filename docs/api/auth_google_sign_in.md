@@ -6,6 +6,58 @@ Lets a user sign in or sign up with their real Google account (Gmail). This sits
 
 ---
 
+## ⚠️ Contract update — authorization-code flow (backend change required)
+
+> **Why this changed:** the frontend can no longer use GIS `renderButton` to get
+> an `idToken` directly. That button is locked to Google's styling and cannot be
+> hidden under our custom mint button — Google's anti-clickjacking checks make the
+> overlaid (`opacity: 0`) button **inert on real origins** (it silently does nothing
+> in production, while working on `localhost`). To keep the custom mint button we
+> switched to the **OAuth 2.0 authorization-code popup flow**.
+
+**The frontend now sends `{ code }` instead of `{ idToken }`.** The backend must
+exchange that code with Google server-side. Concretely, `POST /v1/auth/google` must:
+
+1. **Accept `{ code: string }`** — the authorization code from the GIS code-flow
+   popup. (For a zero-downtime rollout, accept **both** `{ code }` and the legacy
+   `{ idToken }` for one release, then drop `idToken`.)
+
+2. **Exchange the code with Google** (`ux_mode: 'popup'` ⇒ `redirect_uri` is the
+   literal string `postmessage`, **not** a registered URL):
+
+   ```http
+   POST https://oauth2.googleapis.com/token
+   Content-Type: application/x-www-form-urlencoded
+
+   code=<code>
+   &client_id=<GOOGLE_CLIENT_ID>
+   &client_secret=<GOOGLE_CLIENT_SECRET>
+   &redirect_uri=postmessage
+   &grant_type=authorization_code
+   ```
+
+3. **Reuse existing verification.** The token response contains an `id_token`
+   (because the frontend requests scope `openid email profile`). Verify/decode it
+   exactly as before — audience must equal `GOOGLE_CLIENT_ID`, then read
+   `sub` / `email` / `email_verified` / `name` / `picture` — and run the same
+   user lookup → link → create → issue-session logic. **The 200 `AuthResponse`
+   and all error semantics below are unchanged.**
+
+4. **New env var: `GOOGLE_CLIENT_SECRET`** — from the *same* OAuth client (Google
+   Cloud Console → Clients → your Web client → client secret). The client ID stays
+   the same on both sides; only the secret is new (server-side only — never ship it
+   to the browser).
+
+5. **No new redirect URI to register.** The popup flow uses the existing
+   **Authorized JavaScript origins** only; `postmessage` is a special value and is
+   not added to "Authorized redirect URIs".
+
+**Deploy order:** ship the backend change **first** (or have it accept both shapes),
+then deploy the frontend. If the frontend's `{ code }` reaches a backend that still
+requires `{ idToken }`, sign-in returns `400`.
+
+---
+
 ## Recommended login screen layout
 
 Keep both methods, but make **Google the primary CTA** and demote email/password to a secondary "or continue with email" option. Google sign-in needs no password, so this gives the clean, password-free UX for almost everyone while keeping email/password as a fallback for admins, demos, tests, and non-Gmail accounts.

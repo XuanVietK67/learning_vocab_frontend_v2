@@ -64,21 +64,23 @@ export async function loginAction(
 }
 
 /**
- * Exchange a Google ID token (`credential` from GIS) for a session. Mirrors
- * {@link loginAction}: on success it sets the session and redirects, so the
- * caller only ever sees a value back when something went wrong.
+ * Exchange a Google OAuth authorization `code` (from the GIS code-flow popup)
+ * for a session. The backend swaps the code with Google for tokens, verifies
+ * the resulting id_token, and returns the same {@link AuthResponse} as login.
+ * Mirrors {@link loginAction}: on success it sets the session and redirects, so
+ * the caller only ever sees a value back when something went wrong.
  * See docs/api/auth_google_sign_in.md.
  */
 export async function googleAuthAction(
-  idToken: string,
+  code: string,
 ): Promise<{ error: string } | void> {
-  if (typeof idToken !== "string" || idToken.length < 20) {
+  if (typeof code !== "string" || code.length < 10) {
     return { error: "Google sign-in failed. Please try again." };
   }
 
   const res = await apiRequest<AuthResponse>("/v1/auth/google", {
     method: "POST",
-    body: JSON.stringify({ idToken }),
+    body: JSON.stringify({ code }),
   });
 
   if (!res.ok || !res.data) {
