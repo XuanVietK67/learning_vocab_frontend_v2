@@ -6,58 +6,6 @@ Lets a user sign in or sign up with their real Google account (Gmail). This sits
 
 ---
 
-## ⚠️ Contract update — authorization-code flow (backend change required)
-
-> **Why this changed:** the frontend can no longer use GIS `renderButton` to get
-> an `idToken` directly. That button is locked to Google's styling and cannot be
-> hidden under our custom mint button — Google's anti-clickjacking checks make the
-> overlaid (`opacity: 0`) button **inert on real origins** (it silently does nothing
-> in production, while working on `localhost`). To keep the custom mint button we
-> switched to the **OAuth 2.0 authorization-code popup flow**.
-
-**The frontend now sends `{ code }` instead of `{ idToken }`.** The backend must
-exchange that code with Google server-side. Concretely, `POST /v1/auth/google` must:
-
-1. **Accept `{ code: string }`** — the authorization code from the GIS code-flow
-   popup. (For a zero-downtime rollout, accept **both** `{ code }` and the legacy
-   `{ idToken }` for one release, then drop `idToken`.)
-
-2. **Exchange the code with Google** (`ux_mode: 'popup'` ⇒ `redirect_uri` is the
-   literal string `postmessage`, **not** a registered URL):
-
-   ```http
-   POST https://oauth2.googleapis.com/token
-   Content-Type: application/x-www-form-urlencoded
-
-   code=<code>
-   &client_id=<GOOGLE_CLIENT_ID>
-   &client_secret=<GOOGLE_CLIENT_SECRET>
-   &redirect_uri=postmessage
-   &grant_type=authorization_code
-   ```
-
-3. **Reuse existing verification.** The token response contains an `id_token`
-   (because the frontend requests scope `openid email profile`). Verify/decode it
-   exactly as before — audience must equal `GOOGLE_CLIENT_ID`, then read
-   `sub` / `email` / `email_verified` / `name` / `picture` — and run the same
-   user lookup → link → create → issue-session logic. **The 200 `AuthResponse`
-   and all error semantics below are unchanged.**
-
-4. **New env var: `GOOGLE_CLIENT_SECRET`** — from the *same* OAuth client (Google
-   Cloud Console → Clients → your Web client → client secret). The client ID stays
-   the same on both sides; only the secret is new (server-side only — never ship it
-   to the browser).
-
-5. **No new redirect URI to register.** The popup flow uses the existing
-   **Authorized JavaScript origins** only; `postmessage` is a special value and is
-   not added to "Authorized redirect URIs".
-
-**Deploy order:** ship the backend change **first** (or have it accept both shapes),
-then deploy the frontend. If the frontend's `{ code }` reaches a backend that still
-requires `{ idToken }`, sign-in returns `400`.
-
----
-
 ## Recommended login screen layout
 
 Keep both methods, but make **Google the primary CTA** and demote email/password to a secondary "or continue with email" option. Google sign-in needs no password, so this gives the clean, password-free UX for almost everyone while keeping email/password as a fallback for admins, demos, tests, and non-Gmail accounts.
@@ -85,16 +33,18 @@ Guidance:
 
 ## How the flow works (end to end)
 
-1. Frontend renders a "Sign in with Google" button using **Google Identity Services (GIS)**.
-2. The user picks their Google account; GIS returns a **Google ID token** (a JWT credential string) to the frontend. The frontend never sees the user's Google password.
-3. Frontend `POST`s that ID token to `POST /v1/auth/google`.
-4. Backend cryptographically verifies the token with Google, then:
+1. Frontend renders its **own custom** "Continue with Google" button and wires it to the GIS **authorization-code popup flow** (`google.accounts.oauth2.initCodeClient`, `ux_mode: 'popup'`, scope `openid email profile`).
+2. Clicking the button opens a Google popup; the user picks their Google account and GIS returns a short-lived, single-use **authorization `code`** to the frontend. The frontend never sees the user's Google password.
+3. Frontend `POST`s that `code` to `POST /v1/auth/google` as `{ code }`.
+4. Backend exchanges the `code` with Google for tokens (server-side, using the client secret), cryptographically verifies the resulting ID token, then:
    - existing Google user → logs them in;
    - existing email/password user with the **same email** → links Google to that account and logs them in;
    - brand-new email → creates a new account.
 5. Backend returns the normal `AuthResponse` (access token + refresh token + user). From here, the frontend treats the session identically to an email/password login.
 
-> The ID token is what GIS calls the **`credential`**. It is *not* an OAuth access token and *not* the authorization `code` flow — use the One Tap / button credential flow.
+> The `code` is **not** an ID token and **not** an access token — it is a single-use authorization code that the backend exchanges server-side.
+>
+> **Legacy:** the older GIS credential flow (`renderButton` / One Tap returning a `credential` ID token, sent as `{ idToken }`) is **still accepted** during rollout, but new integrations should use the `code` flow — Google's button styling cannot match a custom UI and the transparent-overlay workaround is silently blocked on production origins.
 
 ---
 
@@ -105,7 +55,8 @@ Guidance:
 - The **same** Client ID is configured on both sides:
   - Backend: `GOOGLE_CLIENT_ID` env var (the backend rejects tokens whose audience isn't this client).
   - Frontend: e.g. `NEXT_PUBLIC_GOOGLE_CLIENT_ID`.
-- If the backend's `GOOGLE_CLIENT_ID` is unset, this endpoint returns **503** (see error table).
+- Backend also needs the **client secret** (`GOOGLE_CLIENT_SECRET`, same OAuth client) to exchange the `code` server-side. It is **server-side only** — never expose it to the browser.
+- If the backend's `GOOGLE_CLIENT_ID` **or** `GOOGLE_CLIENT_SECRET` is unset, this endpoint returns **503** (see error table).
 
 ---
 
@@ -122,14 +73,19 @@ No `Authorization` header — this endpoint is public.
 ### Body
 
 ```json
-{ "idToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6Ij..." }
+{ "code": "4/0AeanS0b...." }
 ```
 
 ### Field rules
 
+Send **one** of `code` (current flow) or `idToken` (legacy). At least one is required.
+
 | Field | Required | Type | Constraints |
 |---|---|---|---|
-| `idToken` | yes | string | min length 20. The raw Google ID token (`credential`) string from GIS. No other body fields are allowed (extra fields → `400`). |
+| `code` | yes* | string | min length 8. The Google OAuth authorization `code` from the GIS popup code flow. Single-use, short-lived. |
+| `idToken` | yes* | string | min length 20. **Legacy** — the raw Google ID token (`credential`) string from the old GIS button/One Tap flow. |
+
+\* Exactly one of `code` / `idToken` is required. A body with neither (or extra unknown fields) → `400`.
 
 ---
 
@@ -170,8 +126,8 @@ No `Authorization` header — this endpoint is public.
 
 | Status | When | `message` (example) |
 |---|---|---|
-| `400` | `idToken` missing, not a string, shorter than 20 chars, or body has extra fields | `["idToken must be longer than or equal to 20 characters"]` |
-| `401` | Google rejected the token (expired, wrong audience, malformed) | `invalid google token` |
+| `400` | neither `code` nor `idToken` sent, wrong type / too short, or body has extra fields | `["code must be longer than or equal to 8 characters"]` |
+| `401` | Google rejected the code exchange or the token (expired/reused code, wrong audience, malformed) | `invalid google token` |
 | `401` | Token verified but missing `sub`/`email` | `invalid google token payload` |
 | `401` | The Google account's email is not verified | `google email not verified` |
 | `401` | The matched account is disabled (`isActive: false`) | `account is disabled` |
@@ -181,20 +137,24 @@ No `Authorization` header — this endpoint is public.
 
 ## What the frontend must do
 
-### 1. Load Google Identity Services and get an ID token
+### 1. Load Google Identity Services and get an authorization `code`
 
-Use the official GIS web SDK (`https://accounts.google.com/gsi/client`). Either render the Google button or use One Tap. On success you get a `credential` — that string is the `idToken`.
+Use the official GIS web SDK (`https://accounts.google.com/gsi/client`) and the
+authorization-code popup flow. Wire it to **your own** button — no GIS-rendered button
+needed. On success the callback gives you a `code`.
 
 Sketch (vanilla; adapt to your React setup):
 
 ```js
-google.accounts.id.initialize({
+const codeClient = google.accounts.oauth2.initCodeClient({
   client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-  callback: async ({ credential }) => {
+  scope: 'openid email profile',
+  ux_mode: 'popup',
+  callback: async ({ code }) => {
     const res = await fetch(`${API_BASE}/v1/auth/google`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idToken: credential }),
+      body: JSON.stringify({ code }),
     });
     if (!res.ok) {
       // surface the error message from the body
@@ -205,7 +165,9 @@ google.accounts.id.initialize({
     routeAfterLogin(session.user);
   },
 });
-google.accounts.id.renderButton(buttonEl, { theme: 'outline', size: 'large' });
+
+// on your custom button click:
+myGoogleButton.onclick = () => codeClient.requestCode();
 ```
 
 ### 2. Store the session and reuse it
@@ -238,5 +200,5 @@ This button is additive. Leave the existing email/password form in place. Users 
 - **Email must be verified on Google's side.** Google accounts almost always have verified emails, but the backend rejects unverified ones with `401 google email not verified`.
 - **`username` can be `null`** for social accounts until onboarding sets it — don't assume it's present when rendering the profile.
 - **`avatarUrl`** is populated from the Google profile picture when available; it may be `null`.
-- This is a stateless verification — there is no Google redirect/callback URL to register for this flow, just the JS origin.
+- **No redirect URL to register.** The popup code flow uses only the existing **Authorized JavaScript origins** (your deployed frontend origin); `postmessage` is an exchange-only value the backend uses and is **not** added to "Authorized redirect URIs".
 - Related providers using the identical contract: `POST /v1/auth/apple` (`{ idToken, fullName? }`) and `POST /v1/auth/github` (`{ code }`).
