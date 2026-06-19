@@ -22,6 +22,8 @@ export interface UserResponse {
   proficiencyLevel: CefrLevel | null;
   dailyGoalMinutes: number | null;
   weeklyVocabGoal: number | null;
+  /** When `true`, the user is hidden from every leaderboard and the rank denominator. */
+  leaderboardOptOut: boolean;
   createdAt: string;
   updatedAt: string;
 }
