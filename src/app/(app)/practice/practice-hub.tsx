@@ -1,171 +1,328 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRightIcon, Loader2Icon, MicIcon, PenLineIcon, SearchIcon, XIcon } from "lucide-react";
+import {
+  ArrowRightIcon,
+  CheckIcon,
+  ListIcon,
+  PlayIcon,
+  SproutIcon,
+} from "lucide-react";
 
-import { AudioButton } from "@/app/(app)/learn/questions/_shared/audio-button";
-import type { PracticeWord } from "@/lib/me/practice/types";
-import type { PracticeMode } from "./mode-tabs";
-import { searchPracticeWordsAction } from "./practice-actions";
+import { cn } from "@/lib/utils";
+import type { PracticeItem } from "@/lib/me/practice/types";
+import type { PickTopic } from "@/lib/me/practice/queue";
+import { getPracticeSuggestionsAction } from "./practice-actions";
+import { HandPickView } from "./hand-pick-view";
+
+const COUNT_OPTIONS = [5, 10, 15, 20];
 
 /**
- * The Practice hub — where the learner lands with no word in hand. Auto-offers
- * the top due word as a hero (Write/Speak straight away) and, below, a chooser
- * grid of the other due words, with a search to switch to any saved word. Both
- * arrival paths the brief asked to "explore" (auto-pick + chooser) coexist.
+ * The Practice queue builder — the front door when the learner arrives with no
+ * word in hand (brief §3). Two doors into one queue: **Quick start** (the
+ * asymmetric hero, one tap to a ready set) and **Hand-pick** (the deliberate
+ * catalogue door). Both deposit {@link PracticeItem}s into the queue preview
+ * below; `onStart` hands the queue to the runner. Queue + fallback state are
+ * lifted to {@link import("./practice-screen").PracticeScreen}.
  */
 export function PracticeHub({
-  initialWords,
-  onPick,
+  queue,
+  usedFallback,
+  defaultCount,
+  topics,
+  onQueueChange,
+  onUsedFallbackChange,
+  onStart,
 }: {
-  initialWords: PracticeWord[];
-  onPick: (word: PracticeWord, mode: PracticeMode) => void;
+  queue: PracticeItem[];
+  usedFallback: boolean;
+  defaultCount: number;
+  topics: PickTopic[];
+  onQueueChange: (next: PracticeItem[]) => void;
+  onUsedFallbackChange: (next: boolean) => void;
+  onStart: () => void;
 }) {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<PracticeWord[] | null>(null);
-  const [searching, setSearching] = useState(false);
-  const seq = useRef(0);
+  const [view, setView] = useState<"hub" | "pick">("hub");
+  const [count, setCount] = useState(defaultCount);
+  // Tracks the Quick start *fetch* outcome, independent of live queue edits —
+  // removing the last chip must not flip the card to the "learn first" state.
+  const [qsState, setQsState] = useState<"loading" | "ready" | "empty">(
+    queue.length > 0 ? "ready" : "empty",
+  );
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<number | undefined>(undefined);
 
-  // Sync UI flips live in the change handler; the effect only does the async
-  // fetch (keeps setState out of the effect body — react-hooks/set-state-in-effect).
-  function onQueryChange(value: string) {
-    setQuery(value);
-    if (value.trim()) {
-      setSearching(true);
-    } else {
-      setResults(null);
-      setSearching(false);
-    }
+  useEffect(() => () => window.clearTimeout(toastTimer.current), []);
+
+  function showToast(message: string) {
+    window.clearTimeout(toastTimer.current);
+    setToast(message);
+    toastTimer.current = window.setTimeout(() => setToast(null), 3200);
   }
 
-  // Debounced search; the latest query wins (sequence guard against races).
-  useEffect(() => {
-    const q = query.trim();
-    if (!q) return;
-    const id = ++seq.current;
-    const handle = window.setTimeout(async () => {
-      const found = await searchPracticeWordsAction(q);
-      if (id === seq.current) {
-        setResults(found);
-        setSearching(false);
-      }
-    }, 300);
-    return () => clearTimeout(handle);
-  }, [query]);
+  // Quick start: regenerate the set for the chosen count. Replaces the queue —
+  // "give me N words" is an explicit ask (brief §4.1).
+  async function changeCount(n: number) {
+    setCount(n);
+    setQsState("loading");
+    const next = await getPracticeSuggestionsAction(n);
+    onQueueChange(next.items);
+    onUsedFallbackChange(next.usedFallback);
+    setQsState(next.items.length > 0 ? "ready" : "empty");
+  }
 
-  const isSearching = query.trim().length > 0;
-  const hero = initialWords[0] ?? null;
-  const rest = initialWords.slice(1);
-  const grid = isSearching ? (results ?? []) : rest;
+  // Hand-pick merges into the existing queue, de-duped across paths (brief §6).
+  function addToQueue(items: PracticeItem[]) {
+    const have = new Set(queue.map((q) => q.vocabularyId));
+    const merged = [...queue];
+    for (const item of items) {
+      if (!have.has(item.vocabularyId)) merged.push(item);
+    }
+    onQueueChange(merged);
+  }
+
+  function removeFromQueue(id: string) {
+    onQueueChange(queue.filter((q) => q.vocabularyId !== id));
+  }
+
+  const showQueue = qsState !== "loading" && queue.length > 0;
 
   return (
-    <div className="lr-stagger">
-      <div className="mb-4.5">
-        <span className="lr-eyebrow text-(--sky)">Practice</span>
-        <h1 className="mt-1.5 text-[30px] font-extrabold tracking-[-0.02em]">Put a word to work</h1>
-        <p className="mt-0.5 text-[15.5px] text-(--ink-2)">
-          Write a sentence with it, or say it aloud — and get a clear breakdown.
-        </p>
-      </div>
-
-      {/* search */}
-      <div className="lr-card mb-5.5 flex items-center gap-2.5 rounded-2xl px-4 py-0.5">
-        <SearchIcon className="size-5 shrink-0 text-(--ink-3)" />
-        <input
-          value={query}
-          onChange={(e) => onQueryChange(e.target.value)}
-          placeholder="Search a word to practice…"
-          className="flex-1 border-none bg-transparent py-3 text-[15.5px] text-(--ink) outline-none placeholder:text-(--ink-3)"
-          aria-label="Search a word to practice"
+    <>
+      {view === "pick" ? (
+        <HandPickView
+          topics={topics}
+          onAdd={addToQueue}
+          onClose={() => setView("hub")}
+          onToast={showToast}
         />
-        {searching && <Loader2Icon className="size-4 animate-spin text-(--ink-3) motion-reduce:animate-none" />}
-        {query && (
-          <button
-            type="button"
-            onClick={() => onQueryChange("")}
-            aria-label="Clear search"
-            className="grid size-6 place-items-center text-(--ink-3) hover:text-(--ink)"
-          >
-            <XIcon className="size-5" />
-          </button>
-        )}
-      </div>
+      ) : (
+        <div className="lr-stagger">
+          <h1 className="text-[33px] font-extrabold tracking-[-0.025em] text-(--ink)">
+            Practice
+          </h1>
+          <p className="mt-2 text-[17px] font-medium text-(--ink-2)">
+            Pick a few words and prove you can use them.
+          </p>
 
-      {/* hero due word (only when not searching) */}
-      {!isSearching && hero && (
-        <div className="lr-card lr-pop mb-6.5 overflow-hidden p-0">
-          <div className="p-[26px_28px]" style={{ background: "linear-gradient(120deg, var(--sky-soft), var(--surface) 70%)" }}>
-            <div className="mb-4 flex items-center justify-between">
-              <span className="lr-chip" style={{ color: "var(--sky)" }}>
-                <span className="inline-block size-[7px] rounded-full bg-(--sky)" /> Due now
+          {/* two doors: Quick start (hero) + Hand-pick (secondary) */}
+          <div className="mt-7 flex flex-wrap items-stretch gap-5">
+            <div className="lr-card min-w-[min(100%,380px)] flex-[1.8_1_380px] p-7">
+              {qsState === "loading" ? (
+                <QuickStartSkeleton />
+              ) : qsState === "ready" ? (
+                <QuickStartReady
+                  count={count}
+                  picked={queue.length}
+                  usedFallback={usedFallback}
+                  canStart={queue.length > 0}
+                  onCount={changeCount}
+                  onStart={onStart}
+                />
+              ) : (
+                <QuickStartEmpty />
+              )}
+            </div>
+
+            <div className="flex flex-[1_1_240px] flex-col rounded-(--r-card) border border-(--line) bg-(--card-2) p-7 shadow-(--sh-sm)">
+              <span className="grid size-11 place-items-center rounded-[14px] border border-(--line-2) bg-(--surface) text-(--ink-2) shadow-(--sh-sm)">
+                <ListIcon className="size-5" />
               </span>
-            </div>
-            <div className="flex items-center gap-4">
-              {hero.audioUrl && <AudioButton src={hero.audioUrl} size="lg" label="Hear it" />}
-              <div className="min-w-0">
-                <div className="lr-word text-[46px]">{hero.lemma}</div>
-                <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                  {hero.ipa && <span className="lr-ipa text-[19px]">{hero.ipa}</span>}
-                  {(hero.pos || hero.gloss) && (
-                    <span className="text-[15px] text-(--ink-2)">
-                      {hero.pos}
-                      {hero.pos && hero.gloss ? " · " : ""}
-                      {hero.gloss}
-                    </span>
-                  )}
-                </div>
+              <div className="mt-4 text-[19px] font-bold tracking-[-0.01em] text-(--ink)">
+                Hand-pick
               </div>
+              <p className="mt-1.5 text-sm leading-relaxed text-(--ink-2)">
+                Choose words yourself from your catalogue.
+              </p>
+              <div className="flex-1" />
+              <button
+                type="button"
+                onClick={() => setView("pick")}
+                className="lr-btn lr-btn--soft lr-btn--md mt-5 w-full"
+              >
+                Browse words <ArrowRightIcon className="size-4" />
+              </button>
             </div>
           </div>
-          <div className="flex items-center justify-end gap-3 border-t border-(--line) p-[16px_28px]">
-            <button type="button" className="lr-btn lr-btn--soft lr-btn--md" onClick={() => onPick(hero, "write")}>
-              <PenLineIcon className="size-4" /> Write
-            </button>
-            <button type="button" className="lr-btn lr-btn--primary lr-btn--md" onClick={() => onPick(hero, "speak")}>
-              <MicIcon className="size-4" /> Speak
-            </button>
-          </div>
+
+          {/* queue preview — the proof, not decoration (brief §3, §6) */}
+          {showQueue && (
+            <div className="mt-8">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-baseline gap-2.5">
+                  <span className="text-base font-bold text-(--ink)">In your queue</span>
+                  <span className="tnum text-sm font-medium text-(--ink-3)">
+                    · {queue.length} words
+                  </span>
+                </div>
+                {usedFallback && (
+                  <span className="inline-flex items-center rounded-full border-[1.5px] border-(--line-2) bg-(--surface) px-3.5 py-1.5 text-[12.5px] font-semibold text-(--ink-2) shadow-(--sh-sm)">
+                    Includes extra practice
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2.5">
+                {queue.map((word) => (
+                  <span
+                    key={word.vocabularyId}
+                    className="inline-flex items-center gap-2.5 rounded-full border-[1.5px] border-(--line-2) bg-(--surface) py-2 pr-2 pl-3.5 shadow-(--sh-sm)"
+                  >
+                    <span className="lr-word text-[17px]">{word.lemma}</span>
+                    {word.partOfSpeech && (
+                      <span className="text-[11.5px] font-semibold text-(--ink-3)">
+                        {word.partOfSpeech}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeFromQueue(word.vocabularyId)}
+                      aria-label={`Remove ${word.lemma}`}
+                      className="grid size-[22px] place-items-center rounded-full bg-(--line) text-[15px] leading-none text-(--ink-2) transition-colors hover:bg-(--line-2) hover:text-(--ink)"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={onStart}
+                className="lr-btn lr-btn--primary lr-btn--lg mt-5.5 px-9"
+              >
+                Start practising
+              </button>
+            </div>
+          )}
         </div>
       )}
 
-      {/* chooser grid */}
-      <span className="lr-eyebrow">
-        {isSearching ? `Results for “${query.trim()}”` : "Or pick another word"}
-      </span>
-      <div className="mt-3 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
-        {grid.map((w) => (
-          <button
-            key={w.vocabularyId}
-            type="button"
-            onClick={() => onPick(w, "write")}
-            className="lr-card hoverlift flex items-center gap-3.5 rounded-[18px] p-4 text-left"
-          >
-            <div className="min-w-0 flex-1">
-              <span className="lr-word text-[24px]">{w.lemma}</span>
-              {(w.pos || w.gloss) && (
-                <div className="mt-0.5 truncate text-[13.5px] text-(--ink-2)">
-                  {w.pos}
-                  {w.pos && w.gloss ? " · " : ""}
-                  {w.gloss}
-                </div>
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-22 left-1/2 z-50 max-w-[88vw] -translate-x-1/2 rounded-[14px] bg-(--ink) px-5 py-3 text-center text-sm font-semibold text-white shadow-(--sh-lg)"
+        >
+          {toast}
+        </div>
+      )}
+    </>
+  );
+}
+
+function QuickStartReady({
+  count,
+  picked,
+  usedFallback,
+  canStart,
+  onCount,
+  onStart,
+}: {
+  count: number;
+  picked: number;
+  usedFallback: boolean;
+  canStart: boolean;
+  onCount: (n: number) => void;
+  onStart: () => void;
+}) {
+  return (
+    <div>
+      <div className="flex items-center gap-3.5">
+        <span
+          className="grid size-12 shrink-0 place-items-center rounded-[15px]"
+          style={{
+            background: "radial-gradient(120% 120% at 35% 25%, #2bd6a3, var(--primary) 70%)",
+            boxShadow: "var(--sh-primary)",
+          }}
+        >
+          <PlayIcon className="size-5 fill-white text-white" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="text-[19px] font-bold tracking-[-0.01em] text-(--ink)">Quick start</div>
+          <div className="mt-0.5 text-[14.5px] text-(--ink-2)">
+            <span className="tnum font-bold text-(--ink)">{picked}</span> words picked for you today
+          </div>
+        </div>
+      </div>
+      <p className="mt-3.5 text-[13.5px] text-(--ink-3)">due reviews + new words at your level</p>
+
+      <div className="mt-5">
+        <div className="mb-2.5 text-[12.5px] font-semibold text-(--ink-3)">How many words</div>
+        <div className="inline-flex gap-1.5 rounded-full border-[1.5px] border-(--line-2) bg-(--card-2) p-1.5">
+          {COUNT_OPTIONS.map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => onCount(n)}
+              aria-pressed={n === count}
+              className={cn(
+                "tnum h-[38px] min-w-[46px] rounded-full px-3.5 text-sm font-bold transition-colors",
+                n === count
+                  ? "bg-(--primary) text-white shadow-(--sh-primary)"
+                  : "text-(--ink-2) hover:text-(--ink)",
               )}
-            </div>
-            <ArrowRightIcon className="size-5 shrink-0 text-(--ink-3)" />
-          </button>
-        ))}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* empty states */}
-      {isSearching && !searching && grid.length === 0 && (
-        <p className="mt-2 p-6 text-center text-[15px] text-(--ink-2)">
-          No words match “{query.trim()}”. Try another spelling — Write needs a saved word.
-        </p>
+      {usedFallback && (
+        <div className="mt-5 flex items-start gap-2.5 rounded-[18px] border border-(--primary-soft-2) bg-(--primary-soft) px-4 py-3.5">
+          <CheckIcon className="mt-0.5 size-[18px] shrink-0 text-(--primary-ink)" strokeWidth={2.4} />
+          <p className="text-[13.5px] leading-relaxed text-(--primary-ink)">
+            You’re caught up on reviews — here are a few extra words at your level.
+          </p>
+        </div>
       )}
-      {!isSearching && initialWords.length === 0 && (
-        <p className="mt-2 p-6 text-center text-[15px] text-(--ink-2)">
-          Nothing’s due right now. Search any word you’ve saved to practice it.
-        </p>
-      )}
+
+      <button
+        type="button"
+        onClick={onStart}
+        disabled={!canStart}
+        className="lr-btn lr-btn--primary lr-btn--lg mt-5.5 h-[54px] w-full text-base"
+      >
+        Start practising
+      </button>
+    </div>
+  );
+}
+
+function QuickStartEmpty() {
+  return (
+    <div className="px-2 py-3.5 text-center">
+      <span className="mx-auto grid size-16 place-items-center rounded-[20px] bg-(--primary-soft) text-(--primary-ink)">
+        <SproutIcon className="size-7.5" />
+      </span>
+      <div className="mt-4 text-[19px] font-bold text-(--ink)">No words to practise yet</div>
+      <p className="mx-auto mt-2 mb-5 max-w-[300px] text-sm leading-relaxed text-(--ink-2)">
+        Learn a few words first, then come back to practise using them.
+      </p>
+      <Link href="/learn" className="lr-btn lr-btn--soft lr-btn--md inline-flex">
+        Go to Learn <ArrowRightIcon className="size-4" />
+      </Link>
+    </div>
+  );
+}
+
+function QuickStartSkeleton() {
+  return (
+    <div>
+      <div className="flex items-center gap-3.5">
+        <div className="lr-sk size-12 rounded-[15px]" />
+        <div className="flex-1">
+          <div className="lr-sk h-4 w-40 rounded-md" />
+          <div className="lr-sk mt-2.5 h-3 w-56 rounded-md" />
+        </div>
+      </div>
+      <div className="mt-6 flex flex-wrap gap-2">
+        <div className="lr-sk h-9 w-26 rounded-full" />
+        <div className="lr-sk h-9 w-22 rounded-full" />
+        <div className="lr-sk h-9 w-30 rounded-full" />
+      </div>
     </div>
   );
 }
