@@ -9,6 +9,7 @@ import { cache } from "react";
 
 import { apiRequest } from "../api";
 import { getAccessToken } from "../auth/session";
+import type { LeaderboardResponse } from "./types";
 
 export interface MyRank {
   rank: number | null;
@@ -26,3 +27,25 @@ export const getMyRank = cache(async (): Promise<MyRank> => {
   );
   return res.ok && res.data?.me ? res.data.me : { rank: null, value: 0 };
 });
+
+/**
+ * Render-safe read of the full words-mastered (all-time) board for the
+ * `/leaderboard` screen — the top 50 plus the caller's own `me` standing. Only
+ * `metric=words_mastered&window=all` is live; the weekly `new_words` board
+ * returns `501` until Phase 2 (see docs/api/community_leaderboard.md). Returns
+ * `null` when unauthenticated or on error, which the screen maps to its calm
+ * error state.
+ */
+export const getLeaderboard = cache(
+  async (): Promise<LeaderboardResponse | null> => {
+    const token = await getAccessToken();
+    if (!token) return null;
+
+    const res = await apiRequest<LeaderboardResponse>(
+      "/v1/leaderboard?metric=words_mastered&window=all&limit=50",
+      { method: "GET" },
+      token,
+    );
+    return res.ok && res.data ? res.data : null;
+  },
+);

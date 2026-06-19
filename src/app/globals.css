@@ -316,6 +316,13 @@
     radial-gradient(120% 120% at 100% 0%, rgba(31, 159, 209, 0.12), transparent 55%),
     var(--surface);
 }
+/* leaderboard header band — violet (social) wash with a mint counter-glow */
+.lb-band {
+  background:
+    radial-gradient(120% 120% at 0% 0%, rgba(123, 108, 255, 0.14), transparent 55%),
+    radial-gradient(120% 120% at 100% 0%, rgba(18, 189, 138, 0.1), transparent 55%),
+    var(--surface);
+}
 
 /* serif display + tabular numerals (§2.3) */
 .serif {

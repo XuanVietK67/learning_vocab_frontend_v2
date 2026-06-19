@@ -111,6 +111,38 @@ export interface Page<T> {
   total: number;
 }
 
+// ── Leaderboard (`GET /v1/leaderboard`) ──────────────────────────────────────
+// See docs/api/community_leaderboard.md. Only `metric=words_mastered&window=all`
+// is live; `new_words` returns 501 until Phase 2.
+
+/** One ranked learner on a leaderboard board. */
+export interface LeaderboardEntry {
+  /** 1-based, sequential — ties broken by username, never shared. */
+  rank: number;
+  userId: string;
+  username: string | null;
+  avatarUrl: string | null;
+  /** The metric count (mastered words, or new words in window). */
+  value: number;
+}
+
+/** A leaderboard board plus the caller's own standing — `GET /v1/leaderboard`. */
+export interface LeaderboardResponse {
+  metric: string;
+  window: string;
+  /** ISO range being measured; `periodStart` is null for `window=all`. */
+  periodStart: string | null;
+  periodEnd: string | null;
+  limit: number;
+  /** Eligible users with `value > 0`, opted-out users excluded. */
+  data: LeaderboardEntry[];
+  /**
+   * The caller's standing, always present. `rank` is `null` (and `value` 0) when
+   * the caller has no qualifying activity or has opted out.
+   */
+  me: { rank: number | null; value: number };
+}
+
 /** One of the caller's decks with its ordered words — `GET /v1/me/decks/:id`. */
 export interface DeckDetail extends DeckSummary {
   vocabularies: MyWord[];
