@@ -1,8 +1,11 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 
-import type { PracticeWord } from "@/lib/me/practice/types";
+import { practiceItemToWord, practiceWordToItem } from "@/lib/me/practice/item";
+import type { PracticeItem, PracticeSuggestions, PracticeWord } from "@/lib/me/practice/types";
+import type { PickTopic } from "@/lib/me/practice/queue";
 import { ModeTabs, type PracticeMode } from "./mode-tabs";
 import { PracticeHub } from "./practice-hub";
 import { SpeakMode } from "./speak-mode";
@@ -10,60 +13,106 @@ import { WordHeader } from "./word-header";
 import { WriteMode } from "./write-mode";
 
 /**
- * Client root of the Practice surface. Owns the two pieces of screen state — the
- * selected `word` (null ⇒ the hub) and the active `mode` — and threads
- * session-earned scores into the shared header's history strip. The header stays
- * mounted across tab switches; only the mode panel swaps. Keyed by
- * `vocabularyId` so switching words resets both panels cleanly.
+ * Client root of the Practice surface. Owns the **queue** the learner builds in
+ * the hub (Quick start + Hand-pick) and the cursor into it (`activeIndex`); when
+ * the cursor is null we show the queue-builder hub, otherwise the word-anchored
+ * runner for `queue[activeIndex]`. The `?word=` deep-link bypasses the hub by
+ * seeding a one-item queue. The runner panels are unchanged — they take a single
+ * {@link PracticeWord}; a slim queue bar walks the cursor through the rest.
  */
 export function PracticeScreen({
   initialWord,
-  initialWords,
+  initialSuggestions,
+  defaultCount,
+  topics,
 }: {
   initialWord: PracticeWord | null;
-  initialWords: PracticeWord[];
+  initialSuggestions: PracticeSuggestions;
+  defaultCount: number;
+  topics: PickTopic[];
 }) {
-  const [word, setWord] = useState<PracticeWord | null>(initialWord);
+  // Deep-link → a one-item queue, dropped straight into the runner.
+  const [queue, setQueue] = useState<PracticeItem[]>(() =>
+    initialWord ? [practiceWordToItem(initialWord)] : initialSuggestions.items,
+  );
+  const [usedFallback, setUsedFallback] = useState(
+    initialWord ? false : initialSuggestions.usedFallback,
+  );
+  const [activeIndex, setActiveIndex] = useState<number | null>(initialWord ? 0 : null);
   const [mode, setMode] = useState<PracticeMode>("write");
   const [sessionScores, setSessionScores] = useState<Record<string, number[]>>({});
 
-  const pick = useCallback((next: PracticeWord, nextMode: PracticeMode = "write") => {
-    setWord(next);
-    setMode(nextMode);
-  }, []);
+  const activeItem = activeIndex === null ? undefined : queue[activeIndex];
+  const activeWord = activeItem ? practiceItemToWord(activeItem) : null;
 
   const recordScore = useCallback(
     (score: number) => {
-      if (!word) return;
+      if (!activeWord) return;
       setSessionScores((prev) => ({
         ...prev,
-        [word.vocabularyId]: [...(prev[word.vocabularyId] ?? []), score],
+        [activeWord.vocabularyId]: [...(prev[activeWord.vocabularyId] ?? []), score],
       }));
     },
-    [word],
+    [activeWord],
   );
 
-  if (!word) {
+  if (activeIndex === null || !activeWord) {
     return (
-      <div className="mx-auto w-full max-w-[880px] px-4 py-8 sm:px-6 lg:py-10">
-        <PracticeHub initialWords={initialWords} onPick={pick} />
+      <div className="mx-auto w-full max-w-235 px-4 py-8 sm:px-7 lg:py-12">
+        <PracticeHub
+          queue={queue}
+          usedFallback={usedFallback}
+          defaultCount={defaultCount}
+          topics={topics}
+          onQueueChange={setQueue}
+          onUsedFallbackChange={setUsedFallback}
+          onStart={() => setActiveIndex(0)}
+        />
       </div>
     );
   }
 
+  const total = queue.length;
   return (
-    <div className="mx-auto w-full max-w-[880px] px-4 py-8 sm:px-6 lg:py-10">
-      <div key={word.vocabularyId} className="lr-stagger">
+    <div className="mx-auto w-full max-w-220 px-4 py-8 sm:px-6 lg:py-10">
+      {total > 1 && (
+        <div className="mb-3.5 flex items-center justify-between gap-3">
+          <span className="lr-eyebrow">
+            Word <span className="tnum">{activeIndex + 1}</span> of{" "}
+            <span className="tnum">{total}</span>
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveIndex((i) => Math.max(0, (i ?? 0) - 1))}
+              disabled={activeIndex === 0}
+              className="lr-btn lr-btn--ghost lr-btn--sm disabled:opacity-40"
+            >
+              <ChevronLeftIcon className="size-4" /> Prev
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveIndex((i) => Math.min(total - 1, (i ?? 0) + 1))}
+              disabled={activeIndex >= total - 1}
+              className="lr-btn lr-btn--soft lr-btn--sm disabled:opacity-40"
+            >
+              Next word <ChevronRightIcon className="size-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div key={activeWord.vocabularyId} className="lr-stagger">
         <WordHeader
-          word={word}
-          sessionScores={sessionScores[word.vocabularyId] ?? []}
-          onExit={() => setWord(null)}
+          word={activeWord}
+          sessionScores={sessionScores[activeWord.vocabularyId] ?? []}
+          onExit={() => setActiveIndex(null)}
         />
         <ModeTabs mode={mode} onChange={setMode} />
         {mode === "write" ? (
-          <WriteMode word={word} onSwitchMode={setMode} onScored={recordScore} />
+          <WriteMode word={activeWord} onSwitchMode={setMode} onScored={recordScore} />
         ) : (
-          <SpeakMode word={word} onSwitchMode={setMode} onScored={recordScore} />
+          <SpeakMode word={activeWord} onSwitchMode={setMode} onScored={recordScore} />
         )}
       </div>
     </div>

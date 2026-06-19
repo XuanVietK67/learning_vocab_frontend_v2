@@ -16,7 +16,10 @@ import { z } from "zod";
 
 import { authedRequest, firstMessage } from "@/lib/api";
 import type {
+  CatalogueWord,
   PracticeAttempt,
+  PracticeSetResult,
+  PracticeSuggestions,
   PracticeWord,
   SubmitPracticeResponse,
 } from "@/lib/me/practice/types";
@@ -25,6 +28,12 @@ import {
   toPracticeWord,
   type RawVocabulary,
 } from "@/lib/me/practice/words";
+import {
+  toCatalogueWord,
+  toPracticeItem,
+  type RawCatalogVocab,
+  type RawPracticeItem,
+} from "@/lib/me/practice/queue";
 
 /** Why a Write submission failed, mapped to how the panel should respond. */
 export type SubmitFailureKind =
@@ -127,6 +136,111 @@ export async function searchPracticeWordsAction(query: string): Promise<Practice
   return asArray<RawVocabulary>(res.data)
     .filter((v) => Boolean(v?.id && v?.lemma))
     .map(toPracticeWord);
+}
+
+// ── Queue picker (docs/api/practice_pick_words.md) ───────────────────────────
+
+/**
+ * Quick start: refetch the suggested queue when the learner changes the count.
+ * (The initial set is prefetched on the server by `page.tsx`; this powers the
+ * count control.) Empty on error so the hub shows its composed empty state.
+ */
+export async function getPracticeSuggestionsAction(count: number): Promise<PracticeSuggestions> {
+  const safe = Math.min(20, Math.max(1, Math.trunc(count) || 8));
+  const res = await authedRequest<{ items?: RawPracticeItem[] | null; usedFallback?: boolean }>(
+    `/v1/me/practice/suggestions?count=${safe}`,
+    { method: "GET" },
+  );
+  if (!res.ok || !res.data) return { items: [], usedFallback: false };
+  return {
+    items: (res.data.items ?? [])
+      .filter((it) => Boolean(it?.vocabularyId && it?.lemma))
+      .map(toPracticeItem),
+    usedFallback: Boolean(res.data.usedFallback),
+  };
+}
+
+const catalogueFilterSchema = z.object({
+  q: z.string().trim().max(64).optional(),
+  cefrLevel: z.enum(["A1", "A2", "B1", "B2", "C1", "C2"]).optional(),
+  topic: z.string().trim().max(64).optional(),
+  language: z.string().trim().max(16).optional(),
+});
+
+export type CatalogueFilter = z.input<typeof catalogueFilterSchema>;
+
+/**
+ * Hand-pick: the filterable catalogue checkbox list
+ * (`GET /v1/vocabularies`, public — paginated/filterable by `language`,
+ * `cefrLevel`, `topic`, `q`). One page of up to 50 rows; empty on error.
+ */
+export async function searchCatalogueAction(filter: CatalogueFilter): Promise<CatalogueWord[]> {
+  const parsed = catalogueFilterSchema.safeParse(filter);
+  if (!parsed.success) return [];
+
+  const params = new URLSearchParams({ limit: "50" });
+  const { q, cefrLevel, topic, language } = parsed.data;
+  if (q) params.set("q", q);
+  if (cefrLevel) params.set("cefrLevel", cefrLevel);
+  if (topic) params.set("topic", topic);
+  if (language) params.set("language", language);
+
+  const res = await authedRequest<unknown>(
+    `/v1/vocabularies?${params.toString()}`,
+    { method: "GET" },
+  );
+  if (!res.ok) return [];
+  return asArray<RawCatalogVocab>(res.data)
+    .filter((v) => Boolean(v?.id && v?.lemma))
+    .map(toCatalogueWord);
+}
+
+export type ValidateSetResult =
+  | { ok: true; result: PracticeSetResult }
+  | { ok: false; message: string };
+
+const setSchema = z.object({
+  vocabularyIds: z
+    .array(z.string().uuid())
+    .min(1, "Pick at least one word.")
+    .max(50, "You can practise up to 50 words at once."),
+});
+
+/**
+ * Hand-pick: validate the ticked ids (`POST /v1/me/practice/sets`). Returns the
+ * practiceable `items` (in sent order) + `inaccessibleVocabularyIds` for any
+ * stale/private/draft words the UI should uncheck and toast.
+ */
+export async function submitPracticeSetAction(vocabularyIds: string[]): Promise<ValidateSetResult> {
+  const parsed = setSchema.safeParse({ vocabularyIds });
+  if (!parsed.success) {
+    return { ok: false, message: parsed.error.issues[0]?.message ?? "Pick 1–50 words." };
+  }
+
+  const res = await authedRequest<{
+    items?: RawPracticeItem[] | null;
+    inaccessibleVocabularyIds?: string[] | null;
+  }>("/v1/me/practice/sets", {
+    method: "POST",
+    body: JSON.stringify(parsed.data),
+  });
+
+  if (res.ok && res.data) {
+    return {
+      ok: true,
+      result: {
+        items: (res.data.items ?? [])
+          .filter((it) => Boolean(it?.vocabularyId && it?.lemma))
+          .map(toPracticeItem),
+        inaccessibleVocabularyIds: (res.data.inaccessibleVocabularyIds ?? []).filter(Boolean),
+      },
+    };
+  }
+
+  if (res.status === 400) {
+    return { ok: false, message: firstMessage(res.error) ?? "Pick 1–50 words." };
+  }
+  return { ok: false, message: firstMessage(res.error) ?? "Couldn’t build that set. Try again." };
 }
 
 /** One `GET /v1/pronunciation/attempts` history row (subset used for the sparkline). */

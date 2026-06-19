@@ -80,3 +80,45 @@ export interface PracticeWord {
   /** One-line sense ("lasting a very short time"). */
   gloss: string | null;
 }
+
+/**
+ * One word in a practice **queue**, from the queue picker
+ * (`GET /v1/me/practice/suggestions`, `POST /v1/me/practice/sets`). The lean
+ * shape both doors return — see docs/api/practice_pick_words.md. Hand off to the
+ * word-anchored runner by projecting to {@link PracticeWord}
+ * ({@link import("./item").practiceItemToWord}).
+ */
+export interface PracticeItem {
+  vocabularyId: string;
+  lemma: string;
+  /** e.g. "adjective". May be null. */
+  partOfSpeech: string | null;
+  ipa: string | null;
+  audioUrl: string | null;
+  /** Up to 5 short meanings, most-salient first. May be empty. */
+  glosses: string[];
+}
+
+/** `GET /v1/me/practice/suggestions` — N words for the queue + the fallback flag. */
+export interface PracticeSuggestions {
+  items: PracticeItem[];
+  /** `true` when the SRS picker ran short and the list was padded with level-matched extras. */
+  usedFallback: boolean;
+}
+
+/** `POST /v1/me/practice/sets` — the practiceable subset (in sent order) + the stale ids. */
+export interface PracticeSetResult {
+  items: PracticeItem[];
+  /** Requested ids that don't exist, are private to someone else, or are unapproved drafts. */
+  inaccessibleVocabularyIds: string[];
+}
+
+/** One row of the hand-pick catalogue (`GET /v1/vocabularies`) — display fields only. */
+export interface CatalogueWord {
+  vocabularyId: string;
+  lemma: string;
+  partOfSpeech: string | null;
+  cefrLevel: CefrLevel | null;
+  /** First-sense gloss for the row subtitle; null when the word has no senses yet. */
+  gloss: string | null;
+}
