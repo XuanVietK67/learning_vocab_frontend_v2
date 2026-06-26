@@ -13,6 +13,7 @@ import {
   LogOutIcon,
   type LucideIcon,
   MenuIcon,
+  MessagesSquareIcon,
   MicIcon,
   SettingsIcon,
   ShieldIcon,
@@ -53,6 +54,7 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "Home", href: "/dashboard", icon: HomeIcon },
       { label: "Learn", href: "/learn", icon: GraduationCapIcon },
       { label: "Practice", href: "/practice", icon: MicIcon },
+      { label: "Speaking Room", href: "/speaking", icon: MessagesSquareIcon, violet: true },
     ],
   },
   {
