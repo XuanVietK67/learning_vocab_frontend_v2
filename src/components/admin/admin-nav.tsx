@@ -9,6 +9,7 @@ import {
   ListChecksIcon,
   LogOutIcon,
   type LucideIcon,
+  MessagesSquareIcon,
   TagsIcon,
   UsersIcon,
 } from "lucide-react";
@@ -38,6 +39,7 @@ const NAV: NavItem[] = [
     icon: ListChecksIcon,
   },
   { label: "Topics", href: "/admin/topics", icon: TagsIcon },
+  { label: "Scenarios", href: "/admin/scenarios", icon: MessagesSquareIcon },
   { label: "Users", href: "/admin/users", icon: UsersIcon },
   {
     label: "Jobs",

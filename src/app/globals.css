@@ -324,6 +324,63 @@
     var(--surface);
 }
 
+/* ============================================================
+   Speaking Room scope — the app's conversation surface. Lives
+   inside .app-shell on the learner pages, and is paired with it on
+   the admin authoring pages (.app-shell .speak-shell) so authoring
+   is just as colourful as practice. It inherits the full Sprout
+   token block from .app-shell; it only adds the violet→sky "voice"
+   washes (distinct from mint Learn) and the chat/report motion.
+   Reduced motion is neutralised by the .app-shell * rule below.
+   ============================================================ */
+.speak-field {
+  background:
+    radial-gradient(120% 90% at 0% -10%, rgba(123, 108, 255, 0.1), transparent 55%),
+    radial-gradient(120% 90% at 100% -10%, rgba(31, 159, 209, 0.1), transparent 55%),
+    var(--app-bg);
+}
+/* hero band behind a scenario / the live header — violet+sky */
+.speak-band {
+  background:
+    radial-gradient(120% 120% at 0% 0%, rgba(123, 108, 255, 0.16), transparent 55%),
+    radial-gradient(120% 120% at 100% 0%, rgba(31, 159, 209, 0.14), transparent 55%),
+    var(--surface);
+}
+/* the report's "you did it" hero leans mint — the learner's colour */
+.speak-band--mint {
+  background:
+    radial-gradient(120% 120% at 0% 0%, rgba(18, 189, 138, 0.16), transparent 60%),
+    radial-gradient(120% 120% at 100% 0%, rgba(43, 214, 163, 0.12), transparent 55%),
+    var(--surface);
+}
+
+/* scenario lifecycle pills — the label carries the meaning, the
+   colour confirms it (no grey "inactive"): draft=amber, live=mint,
+   retired=rose. */
+.sc-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border-radius: var(--r-chip);
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.sc-pill--draft {
+  background: var(--amber-soft);
+  color: var(--warn-ink);
+}
+.sc-pill--live {
+  background: var(--ok-soft);
+  color: var(--ok-ink);
+}
+.sc-pill--retired {
+  background: var(--bad-soft);
+  color: var(--bad-ink);
+}
+
 /* serif display + tabular numerals (§2.3) */
 .serif {
   font-family: var(--serif);
@@ -1455,6 +1512,40 @@
 }
 .lr-pop {
   animation: lr-pop 0.4s cubic-bezier(0.2, 0.8, 0.3, 1.3) both;
+}
+/* Speaking Room — message enter, AI "typing" dots, report shimmer */
+@keyframes lr-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes lr-blink {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+@keyframes lr-sheen {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.lr-in {
+  animation: lr-in 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 .lr-checkpop {
   animation: lr-checkpop 0.45s cubic-bezier(0.2, 0.8, 0.3, 1.5) both;
