@@ -184,14 +184,28 @@
   --bad-ink: #b51f42;
   --bad-bg: #fde4ea; /* legacy alias */
 
-  /* gamification accents */
+  /* gamification accents (round/stage palette — composed, no new hues) */
   --amber: #ffb020;
   --amber-2: #ff7a1a;
   --amber-soft: #fff0d4;
+  --amber-soft-2: #fff7e9;
+  --amber-ink: #92590a;
   --violet: #7b6cff;
+  --violet-press: #6a5cf0;
   --violet-soft: #ece9ff;
+  --violet-soft-2: #f3f1ff;
+  --violet-ink: #4b3fb0;
   --sky: #1f9fd1;
+  --sky-press: #1888b7;
   --sky-soft: #e0f1fa;
+  --sky-soft-2: #eef8fc;
+  --sky-ink: #0f5e80;
+  /* gold mastery tier — a deepened mint for the hardest band */
+  --gold: #0a8f68;
+  --gold-press: #077a58;
+  --gold-soft: #cfeee2;
+  --gold-soft-2: #e9f8f1;
+  --gold-ink: #075438;
 
   /* radii */
   --r-card: 30px;
@@ -645,6 +659,14 @@
   background: var(--learn-surface);
   border-radius: var(--r-card);
   box-shadow: var(--learn-shadow);
+}
+/* per-round accent edge along the card's top */
+.lr-card-accent {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 6px;
+  z-index: 2;
+  background: linear-gradient(90deg, var(--acc), var(--acc-press));
 }
 
 /* entrance + flip fade */
@@ -1105,6 +1127,30 @@
 .lr-typepill .dot.amber {
   background: var(--amber);
 }
+.lr-typepill .dot.gold {
+  background: var(--gold);
+}
+
+/* round pill — the current stage label, tinted to its accent */
+.lr-roundpill {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  max-width: 100%;
+  height: 32px;
+  padding: 0 15px 0 12px;
+  border-radius: var(--r-chip);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.lr-roundpill .dot {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+}
 
 /* progress bar */
 .lr-progress {
@@ -1154,6 +1200,14 @@
   background: var(--primary);
   width: 18px;
 }
+/* accent-tinted variant — the dots wear the current round's color */
+.lr-steps--acc > i {
+  background: color-mix(in oklab, var(--acc), transparent 70%);
+}
+.lr-steps--acc > i.done,
+.lr-steps--acc > i.current {
+  background: var(--acc);
+}
 
 /* streak badge */
 .lr-streak {
@@ -1177,6 +1231,295 @@
 }
 .lr-flame.lit {
   animation: lr-flicker 1.8s ease-in-out infinite;
+}
+
+/* ============================================================
+   Learn · Stage track + stage-clear interstitial. The session is
+   type-major, so each contiguous run of one question type is a
+   "stage". The map reads as a colored ladder (difficulty ascends
+   left → right); the interstitial is the middle of three escalating
+   beats (answer flash → stage clear → summary). Colors are
+   data-driven — each stage/dot sets --acc/--acc-soft/--acc-ink
+   inline (see _chrome/accents.ts), so nothing load-bearing is gray.
+   ============================================================ */
+
+/* the persistent stage track (tap to peek at progress) */
+.lr-stagemap-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--learn-surface);
+  border-radius: 20px;
+  padding: 16px 20px 12px;
+  box-shadow: var(--sh-md);
+  cursor: pointer;
+  transition: box-shadow 0.18s;
+}
+.lr-stagemap-card:hover {
+  box-shadow: var(--sh-lg);
+}
+.lr-stagemap {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.lr-stagemap-track,
+.lr-stagemap-fill {
+  position: absolute;
+  top: 12px;
+  height: 4px;
+  border-radius: 999px;
+}
+.lr-stagemap-track {
+  background: var(--line);
+}
+.lr-stagemap-fill {
+  transition: width 0.5s cubic-bezier(0.3, 0.9, 0.3, 1);
+}
+.lr-stage {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1 1 0;
+  min-width: 0;
+}
+.lr-stage-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  transition: all 0.3s;
+}
+.lr-stage-dot.is-cleared {
+  background: var(--acc);
+  border-color: var(--acc);
+  color: #fff;
+}
+.lr-stage-dot.is-current {
+  background: var(--learn-surface);
+  border-color: var(--acc);
+  color: var(--acc-ink);
+  box-shadow: 0 0 0 4px var(--acc-soft);
+  animation: lr-stage-pulse 1.7s ease-in-out infinite;
+}
+.lr-stage-dot.is-upcoming {
+  background: var(--acc-soft);
+  border-color: var(--acc-soft);
+  color: var(--acc);
+}
+.lr-stage-label {
+  margin-top: 7px;
+  max-width: 100%;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: var(--acc-ink);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lr-stage-label.is-upcoming {
+  color: var(--acc);
+  opacity: 0.6;
+}
+@keyframes lr-stage-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 4px var(--acc-soft);
+  }
+  50% {
+    box-shadow: 0 0 0 9px transparent;
+  }
+}
+
+/* the stage-clear → next-stage interstitial */
+.lr-inter-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(16, 40, 32, 0.42);
+  backdrop-filter: blur(6px);
+  animation: learn-fadeUp 0.25s ease both;
+}
+.lr-inter-panel {
+  position: relative;
+  overflow: hidden;
+  width: 380px;
+  max-width: 100%;
+  background: var(--learn-surface);
+  border-radius: 28px;
+  border-top: 6px solid var(--acc);
+  padding: 30px 30px 24px;
+  text-align: center;
+  box-shadow: var(--sh-lg);
+  animation: learn-pop 0.35s ease both;
+}
+.lr-inter-burst {
+  position: relative;
+  z-index: 1;
+  width: 74px;
+  height: 74px;
+  border-radius: 999px;
+  margin: 0 auto;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  box-shadow: 0 14px 30px -10px var(--acc);
+  animation: learn-burst 0.5s ease both;
+}
+.lr-inter-eyebrow {
+  margin: 16px 0 0;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--acc-ink);
+}
+.lr-inter-title {
+  margin: 2px 0 0;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.lr-inter-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 14px;
+  padding: 7px 15px;
+  border-radius: 999px;
+  background: var(--acc-soft);
+  color: var(--acc-ink);
+  font-size: 14px;
+  font-weight: 800;
+}
+.lr-inter-stepup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 22px 0 16px;
+}
+.lr-inter-stepup .line {
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.lr-inter-stepup .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--acc);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.lr-inter-nextlabel {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-3);
+}
+.lr-inter-next {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 5px;
+}
+.lr-inter-next .dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+}
+.lr-inter-next .name {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.lr-inter-verb {
+  margin: 3px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.lr-inter-map {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 22px;
+  padding: 0 4px;
+}
+.lr-inter-map-track {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: calc(50% - 1.5px);
+  height: 3px;
+  border-radius: 999px;
+  background: var(--line);
+}
+.lr-inter-map-dot {
+  position: relative;
+  z-index: 1;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--acc);
+  transition: all 0.3s;
+}
+.lr-inter-map-dot.is-current {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--learn-surface);
+  box-shadow: 0 0 0 3px var(--acc-soft);
+}
+.lr-inter-map-dot.is-upcoming {
+  background: var(--acc-soft);
+}
+.lr-inter-cta {
+  width: 100%;
+  margin-top: 22px;
+  border: none;
+  cursor: pointer;
+  background: var(--acc);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  padding: 15px;
+  border-radius: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 10px 24px -10px var(--acc);
+  transition: transform 0.14s;
+}
+.lr-inter-cta:hover {
+  transform: translateY(-2px);
+}
+.lr-inter-hint {
+  margin: 10px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-3);
 }
 
 /* audio orb */

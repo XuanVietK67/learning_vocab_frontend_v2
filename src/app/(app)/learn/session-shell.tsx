@@ -2,23 +2,24 @@ import type { ReactNode } from "react";
 import { XIcon } from "lucide-react";
 
 import type { QuestionType } from "@/lib/me/learn/types";
+import { ACCENTS, accentVars } from "./_chrome/accents";
 import { FeedbackFx } from "./_chrome/feedback-fx";
 import { SettingsPopover } from "./_chrome/settings-popover";
+import { StageMap } from "./_chrome/stage-map";
 import { StepDots } from "./_chrome/step-dots";
 import { StreakBadge } from "./_chrome/streak-badge";
-import { TypePill } from "./_chrome/type-pill";
+import { TYPE_META } from "./_chrome/type-pill";
 import type { LearnSettings } from "./_chrome/settings-context";
+import type { StageSegment } from "./session-machine";
 import { Confetti } from "./questions/_shared/confetti";
 
 interface SessionShellProps {
-  /** 1-based index of the card on screen. */
-  current: number;
-  /** Known total (answered + remaining). */
-  total: number;
+  /** Current question type (drives the round pill + card accent). */
+  type: QuestionType;
+  /** The whole stage track (cleared / current / upcoming rounds). */
+  stages: StageSegment[];
   /** Re-mounts the animated body so the entrance replays per card. */
   cardKey: string;
-  /** Current question type (drives the type pill). */
-  type: QuestionType;
   /** Position within the current word's lesson ladder. */
   stepIndex: number;
   stepCount: number;
@@ -42,12 +43,11 @@ interface SessionShellProps {
   children: ReactNode;
 }
 
-/** Persistent session chrome: the top bar, progress, and the study card. */
+/** Persistent session chrome: top bar, stage track, and the study card. */
 export function SessionShell({
-  current,
-  total,
-  cardKey,
   type,
+  stages,
+  cardKey,
   stepIndex,
   stepCount,
   streak,
@@ -62,7 +62,12 @@ export function SessionShell({
   footer,
   children,
 }: SessionShellProps) {
-  const pct = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
+  const accent = TYPE_META[type].accent;
+  const roundCount = stages.length;
+  const roundIndex = Math.max(
+    0,
+    stages.findIndex((s) => s.state === "current"),
+  );
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-3.5rem)] w-full max-w-140 flex-col px-4 py-5 sm:py-6">
@@ -72,34 +77,53 @@ export function SessionShell({
           <button type="button" onClick={onExit} aria-label="Exit session" className="lr-icon-btn">
             <XIcon className="size-5" />
           </button>
-          <div className="flex min-w-0 flex-1 items-center gap-2.5">
-            <TypePill type={type} />
-            <StepDots stepIndex={stepIndex} stepCount={stepCount} />
+          <div className="flex min-w-0 flex-1 items-center">
+            <span
+              className="lr-roundpill"
+              style={{
+                background: ACCENTS[accent].soft,
+                color: ACCENTS[accent].ink,
+              }}
+            >
+              <span className="dot" style={{ background: ACCENTS[accent].main }} />
+              <span className="truncate">
+                Round {roundIndex + 1} · {TYPE_META[type].label}
+              </span>
+            </span>
           </div>
           {showStreak && <StreakBadge streak={streak} />}
           <SettingsPopover settings={settings} setSetting={setSetting} />
         </div>
 
+        {/* stage track (tap to peek at progress) */}
         <button
           type="button"
           onClick={onPeek}
-          aria-label="Session progress"
-          className="flex w-full items-center gap-3"
+          aria-label={`Session progress — stage ${roundIndex + 1} of ${roundCount}`}
+          className="lr-stagemap-card"
         >
-          <span className="lr-progress flex-1">
-            <i style={{ width: `${pct}%` }} />
-          </span>
-          <span className="shrink-0 text-[12.5px] font-bold tabular-nums text-(--ink-3)">
-            {current} / {total}
-          </span>
+          <StageMap stages={stages} />
         </button>
       </div>
+
+      {/* per-word ladder (distinct from the round track) */}
+      {stepCount > 1 && (
+        <div className="mb-4 flex items-center justify-center gap-2.5">
+          <span className="text-[12px] font-bold text-(--ink-3)">
+            Step {stepIndex + 1} of {stepCount}
+          </span>
+          <StepDots stepIndex={stepIndex} stepCount={stepCount} accent={accent} />
+        </div>
+      )}
 
       {/* study card */}
       <div
         className="learn-card relative flex flex-1 flex-col overflow-hidden p-6 sm:p-7"
         data-screen-label={`Question · ${type}`}
+        style={accentVars(accent)}
       >
+        {/* per-round accent edge — keeps even the easiest round from reading plain */}
+        <span aria-hidden className="lr-card-accent" />
         <Confetti fire={confettiKey} />
         <div key={cardKey} className="learn-anim-in flex flex-1 flex-col">
           {children}

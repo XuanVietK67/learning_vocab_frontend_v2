@@ -5,6 +5,7 @@ import {
   type LucideIcon,
   ImageIcon,
   SettingsIcon,
+  SparklesIcon,
   TypeIcon,
   Volume2Icon,
 } from "lucide-react";
@@ -21,6 +22,7 @@ const SETTING_ICONS: Record<keyof LearnSettings, LucideIcon> = {
   autoplay: Volume2Icon,
   showPhonetic: TypeIcon,
   showImage: ImageIcon,
+  stageTransitions: SparklesIcon,
 };
 
 /** Top-row card control: a small popover of display toggles for the study card. */
