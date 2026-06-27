@@ -12,6 +12,7 @@
  */
 import type {
   EmptyReason,
+  QuestionType,
   SessionItem,
   SessionMode,
   SessionResponse,
@@ -35,6 +36,15 @@ export interface SessionState {
   answeredCount: number;
   /** Correct answers, for the end-of-session summary. */
   correctCount: number;
+  /**
+   * The `type` of every step already answered, in answer order. Concatenated
+   * with the remaining `queue` types it reconstructs the full session timeline
+   * (answered + remaining), from which the stage track is derived. The current
+   * item sits at timeline index `answeredCount` (== `answeredTypes.length`).
+   */
+  answeredTypes: QuestionType[];
+  /** Correct / total per question type — feeds the stage-clear stat. */
+  tally: Record<string, { correct: number; total: number }>;
   enrolledNewlyCount: number;
   emptyReason: EmptyReason | null;
   nextDueAt: string | null;
@@ -57,6 +67,8 @@ export function initialSessionState(): SessionState {
     queue: [],
     answeredCount: 0,
     correctCount: 0,
+    answeredTypes: [],
+    tally: {},
     enrolledNewlyCount: 0,
     emptyReason: null,
     nextDueAt: null,
@@ -98,6 +110,8 @@ export function sessionReducer(
         queue: session.items,
         answeredCount: 0,
         correctCount: 0,
+        answeredTypes: [],
+        tally: {},
         error: null,
       };
     }
@@ -106,13 +120,22 @@ export function sessionReducer(
       return { ...state, status: "error", error: action.error };
 
     case "NEXT": {
+      const answered = state.queue[0];
       const rest = state.queue.slice(1);
       const queue = action.requeue.length ? [...rest, ...action.requeue] : rest;
+      const answeredTypes = answered
+        ? [...state.answeredTypes, answered.type]
+        : state.answeredTypes;
+      const tally = answered
+        ? bumpTally(state.tally, answered.type, action.correct)
+        : state.tally;
       return {
         ...state,
         queue,
         answeredCount: state.answeredCount + 1,
         correctCount: state.correctCount + (action.correct ? 1 : 0),
+        answeredTypes,
+        tally,
         status: queue.length === 0 ? "done" : "active",
       };
     }
@@ -135,4 +158,63 @@ export function progressPercent(state: SessionState): number {
   const total = state.answeredCount + state.queue.length;
   if (total === 0) return 0;
   return Math.round((state.answeredCount / total) * 100);
+}
+
+/** Returns `tally` with one answer folded into the given type's bucket. */
+function bumpTally(
+  tally: SessionState["tally"],
+  type: QuestionType,
+  correct: boolean,
+): SessionState["tally"] {
+  const prev = tally[type] ?? { correct: 0, total: 0 };
+  return {
+    ...tally,
+    [type]: { correct: prev.correct + (correct ? 1 : 0), total: prev.total + 1 },
+  };
+}
+
+/** A round in the stage track. The session is type-major, so each contiguous
+ * run of one `type` is one stage; difficulty ascends left → right. */
+export interface StageSegment {
+  type: QuestionType;
+  state: "cleared" | "current" | "upcoming";
+}
+
+/**
+ * The stage track: the distinct `type` runs across the whole session timeline
+ * (answered + remaining), each marked cleared / current / upcoming. Requeued
+ * ladders splice onto the back of the queue, so they widen the track to the
+ * right as bonus stages. Derived — there is no `round` field on the contract.
+ */
+export function deriveStages(state: SessionState): StageSegment[] {
+  const types: QuestionType[] = [
+    ...state.answeredTypes,
+    ...state.queue.map((item) => item.type),
+  ];
+  const currentIndex = state.answeredTypes.length;
+
+  const runs: { type: QuestionType; start: number; end: number }[] = [];
+  types.forEach((type, i) => {
+    const last = runs[runs.length - 1];
+    if (last && last.type === type) last.end = i + 1;
+    else runs.push({ type, start: i, end: i + 1 });
+  });
+
+  return runs.map((run) => ({
+    type: run.type,
+    state:
+      run.end <= currentIndex
+        ? "cleared"
+        : run.start <= currentIndex
+          ? "current"
+          : "upcoming",
+  }));
+}
+
+/** A one-line "N / M correct" stat for a round's type (for the interstitial). */
+export function roundStat(
+  state: SessionState,
+  type: QuestionType,
+): { correct: number; total: number } {
+  return state.tally[type] ?? { correct: 0, total: 0 };
 }

@@ -14,12 +14,37 @@ import {
   type LearnSettings,
   LearnSettingsProvider,
 } from "./_chrome/settings-context";
+import { StageInterstitial } from "./_chrome/stage-interstitial";
 import { EmptyState } from "./empty-state";
 import { QuestionPrompt } from "./questions/question-prompt";
 import { CardFooter } from "./questions/_shared/card-footer";
-import { currentItem, initialSessionState, sessionReducer } from "./session-machine";
+import {
+  currentItem,
+  deriveStages,
+  initialSessionState,
+  roundStat,
+  sessionReducer,
+} from "./session-machine";
 import { SessionShell } from "./session-shell";
 import { SessionSummary } from "./session-summary";
+
+/** How long the stage-clear beat lingers before auto-advancing (skippable). */
+const STAGE_AUTO_ADVANCE_MS = 1400;
+
+/** Read of the user's reduced-motion preference (SSR-safe). */
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+/** The round-boundary beat shown over the just-advanced card. */
+interface InterstitialState {
+  clearedType: QuestionType;
+  nextType: QuestionType;
+  stat: { correct: number; total: number };
+}
 
 interface SessionRunnerProps {
   mode: SessionMode;
@@ -47,6 +72,10 @@ export function SessionRunner({
   const [feedback, setFeedback] = useState<AnswerResponse | null>(null);
   const [isPending, startTransition] = useTransition();
   const questionStartRef = useRef<number>(0);
+  // Stage-clear interstitial: shown over the freshly-advanced card on a round
+  // boundary, auto-advancing after a beat (always skippable).
+  const [interstitial, setInterstitial] = useState<InterstitialState | null>(null);
+  const interTimerRef = useRef<number | null>(null);
 
   // Card-level UI state layered on top of the queue machine.
   const [answer, setAnswer] = useState<string | null>(null);
@@ -71,6 +100,8 @@ export function SessionRunner({
       setBestStreak(0);
       setFx(null);
       setShowSummary(false);
+      if (interTimerRef.current) clearTimeout(interTimerRef.current);
+      setInterstitial(null);
       dispatch({ type: "LOADING" });
       const res = await startSessionAction({ mode, topicSlug, deckId, practice });
       if (res.ok) {
@@ -147,21 +178,56 @@ export function SessionRunner({
     [item, feedback, isPending, state.sessionId, scoreFeedback],
   );
 
+  const skipInterstitial = useCallback(() => {
+    if (interTimerRef.current) {
+      clearTimeout(interTimerRef.current);
+      interTimerRef.current = null;
+    }
+    setInterstitial(null);
+  }, []);
+
   const handleContinue = useCallback(() => {
-    if (!feedback) return;
-    dispatch({
-      type: "NEXT",
-      correct: feedback.correct,
-      requeue: feedback.requeue?.items ?? [],
-    });
+    if (!feedback || !item) return;
+    const requeue = feedback.requeue?.items ?? [];
+    const clearedType = item.type;
+
+    // Peek at what becomes the next card to detect a round (type) boundary —
+    // requeued ladders splice onto the back, so the immediate next is queue[1].
+    const rest = state.queue.slice(1);
+    const newQueue = requeue.length ? [...rest, ...requeue] : rest;
+    const next = newQueue[0] ?? null;
+
+    // The cleared round's score: the running tally plus this just-graded answer.
+    const prior = roundStat(state, clearedType);
+    const stat = {
+      correct: prior.correct + (feedback.correct ? 1 : 0),
+      total: prior.total + 1,
+    };
+
+    dispatch({ type: "NEXT", correct: feedback.correct, requeue });
     setFeedback(null);
     setAnswer(null);
-  }, [feedback]);
+
+    // Stage cleared → play the interstitial before the next round's first card.
+    // Skipped on the final card (→ summary), when disabled, or reduced-motion
+    // (the persistent stage map still updates — an instant, static swap).
+    if (
+      next &&
+      next.type !== clearedType &&
+      settings.stageTransitions &&
+      !prefersReducedMotion()
+    ) {
+      setInterstitial({ clearedType, nextType: next.type, stat });
+      if (interTimerRef.current) clearTimeout(interTimerRef.current);
+      interTimerRef.current = window.setTimeout(skipInterstitial, STAGE_AUTO_ADVANCE_MS);
+    }
+  }, [feedback, item, state, settings.stageTransitions, skipInterstitial]);
 
   // Keyboard: Enter checks a ready quiz answer (flashcards own their own reveal).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (showSummary || !item || feedback !== null || item.type === "flashcard") return;
+      if (showSummary || interstitial || !item || feedback !== null || item.type === "flashcard")
+        return;
       if (e.key === "Enter" && answer !== null && !isPending) {
         e.preventDefault();
         handleSubmit(answer);
@@ -169,7 +235,25 @@ export function SessionRunner({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [item, feedback, answer, isPending, showSummary, handleSubmit]);
+  }, [item, feedback, answer, isPending, showSummary, interstitial, handleSubmit]);
+
+  // Keyboard: while the stage-clear beat is up, Enter/Space blows through it.
+  useEffect(() => {
+    if (!interstitial) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+        e.preventDefault();
+        skipInterstitial();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [interstitial, skipInterstitial]);
+
+  // Drop any pending auto-advance timer on unmount.
+  useEffect(() => () => {
+    if (interTimerRef.current) clearTimeout(interTimerRef.current);
+  }, []);
 
   if (state.status === "loading") {
     return <LoadingCard />;
@@ -226,12 +310,12 @@ export function SessionRunner({
   const variant = item.type === "flashcard" ? "flashcard" : "quiz";
   const isLast =
     state.queue.length === 1 && !(feedback?.requeue?.items?.length);
+  const stages = deriveStages(state);
 
   return (
     <LearnSettingsProvider value={settings}>
       <SessionShell
-        current={state.answeredCount + 1}
-        total={state.answeredCount + state.queue.length}
+        stages={stages}
         cardKey={item.sessionItemId}
         type={item.type}
         stepIndex={item.stepIndex}
@@ -266,6 +350,16 @@ export function SessionRunner({
           onSubmit={handleSubmit}
         />
       </SessionShell>
+
+      {interstitial && (
+        <StageInterstitial
+          clearedType={interstitial.clearedType}
+          nextType={interstitial.nextType}
+          stat={interstitial.stat}
+          stages={stages}
+          onContinue={skipInterstitial}
+        />
+      )}
 
       {showSummary && (
         <Overlay>

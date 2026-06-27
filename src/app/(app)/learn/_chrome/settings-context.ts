@@ -10,18 +10,22 @@ export interface LearnSettings {
   showPhonetic: boolean;
   /** Show the decorative image tile on flashcards. */
   showImage: boolean;
+  /** Play the stage-clear interstitial between rounds (off → instant swap). */
+  stageTransitions: boolean;
 }
 
 export const DEFAULT_LEARN_SETTINGS: LearnSettings = {
   autoplay: false,
   showPhonetic: true,
   showImage: true,
+  stageTransitions: true,
 };
 
 export const SETTING_LABELS: Record<keyof LearnSettings, string> = {
   autoplay: "Auto-play audio",
   showPhonetic: "Show phonetic",
   showImage: "Show image",
+  stageTransitions: "Stage celebrations",
 };
 
 const LearnSettingsContext = createContext<LearnSettings>(DEFAULT_LEARN_SETTINGS);
