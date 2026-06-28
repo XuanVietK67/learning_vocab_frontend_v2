@@ -10,12 +10,16 @@ import {
   Volume2Icon,
 } from "lucide-react";
 
-import { cn } from "@/lib/utils";
+import { QuestionTypePicker } from "./question-type-picker";
 import { type LearnSettings, SETTING_LABELS } from "./settings-context";
+import { ToggleSwitch } from "./toggle-switch";
+import type { QuestionTypePrefs } from "./use-question-type-prefs";
 
 interface SettingsPopoverProps {
   settings: LearnSettings;
   setSetting: (key: keyof LearnSettings, value: boolean) => void;
+  /** Which question types a session may use (applies to the next session). */
+  typePrefs: QuestionTypePrefs;
 }
 
 const SETTING_ICONS: Record<keyof LearnSettings, LucideIcon> = {
@@ -25,8 +29,8 @@ const SETTING_ICONS: Record<keyof LearnSettings, LucideIcon> = {
   stageTransitions: SparklesIcon,
 };
 
-/** Top-row card control: a small popover of display toggles for the study card. */
-export function SettingsPopover({ settings, setSetting }: SettingsPopoverProps) {
+/** Top-row card control: a small popover of display toggles + question-type picker. */
+export function SettingsPopover({ settings, setSetting, typePrefs }: SettingsPopoverProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -52,7 +56,7 @@ export function SettingsPopover({ settings, setSetting }: SettingsPopoverProps) 
       </button>
 
       {open && (
-        <div className="lr-pop absolute right-0 top-12 z-30 w-60 rounded-2xl border border-(--line-2) bg-popover p-3 shadow-(--sh-lg)">
+        <div className="lr-pop absolute right-0 top-12 z-30 max-h-[min(80vh,34rem)] w-68 overflow-y-auto rounded-2xl border border-(--line-2) bg-popover p-3 shadow-(--sh-lg)">
           <p className="lr-eyebrow px-1 pb-2">Display</p>
           {(Object.keys(SETTING_LABELS) as (keyof LearnSettings)[]).map((key) => {
             const Icon = SETTING_ICONS[key];
@@ -72,27 +76,11 @@ export function SettingsPopover({ settings, setSetting }: SettingsPopoverProps) 
               </button>
             );
           })}
+
+          <div className="my-2 h-px bg-(--line-2)" />
+          <QuestionTypePicker prefs={typePrefs} />
         </div>
       )}
     </div>
-  );
-}
-
-/** Compact pill toggle (mint when on). */
-export function ToggleSwitch({ on }: { on: boolean }) {
-  return (
-    <span
-      className={cn(
-        "relative h-6.5 w-11 shrink-0 rounded-full transition-colors",
-        on ? "bg-primary" : "bg-(--line-2)",
-      )}
-    >
-      <span
-        className={cn(
-          "absolute top-0.75 size-5 rounded-full bg-white shadow transition-all",
-          on ? "left-5.25" : "left-0.75",
-        )}
-      />
-    </span>
   );
 }
