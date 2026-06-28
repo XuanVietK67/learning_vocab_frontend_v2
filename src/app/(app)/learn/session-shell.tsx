@@ -10,6 +10,7 @@ import { StepDots } from "./_chrome/step-dots";
 import { StreakBadge } from "./_chrome/streak-badge";
 import { TYPE_META } from "./_chrome/type-pill";
 import type { LearnSettings } from "./_chrome/settings-context";
+import type { QuestionTypePrefs } from "./_chrome/use-question-type-prefs";
 import type { StageSegment } from "./session-machine";
 import { Confetti } from "./questions/_shared/confetti";
 
@@ -28,6 +29,8 @@ interface SessionShellProps {
   showStreak: boolean;
   settings: LearnSettings;
   setSetting: (key: keyof LearnSettings, value: boolean) => void;
+  /** Which question types future sessions may use. */
+  typePrefs: QuestionTypePrefs;
   /** Leave the session. */
   onExit: () => void;
   /** Open the mid-session summary peek. */
@@ -54,6 +57,7 @@ export function SessionShell({
   showStreak,
   settings,
   setSetting,
+  typePrefs,
   onExit,
   onPeek,
   fx,
@@ -92,7 +96,7 @@ export function SessionShell({
             </span>
           </div>
           {showStreak && <StreakBadge streak={streak} />}
-          <SettingsPopover settings={settings} setSetting={setSetting} />
+          <SettingsPopover settings={settings} setSetting={setSetting} typePrefs={typePrefs} />
         </div>
 
         {/* stage track (tap to peek at progress) */}

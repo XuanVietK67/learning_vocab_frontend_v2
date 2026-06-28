@@ -9,11 +9,13 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { AnswerResponse, QuestionType, SessionMode } from "@/lib/me/learn/types";
 import { startSessionAction, submitAnswerAction } from "./actions";
+import { DEFAULT_ENABLED_TYPES, filterItemsByType } from "./_chrome/question-groups";
 import {
   DEFAULT_LEARN_SETTINGS,
   type LearnSettings,
   LearnSettingsProvider,
 } from "./_chrome/settings-context";
+import { useQuestionTypePrefs } from "./_chrome/use-question-type-prefs";
 import { StageInterstitial } from "./_chrome/stage-interstitial";
 import { EmptyState } from "./empty-state";
 import { QuestionPrompt } from "./questions/question-prompt";
@@ -90,6 +92,18 @@ export function SessionRunner({
     setSettings((s) => ({ ...s, [key]: value }));
   }, []);
 
+  // Which question types future sessions may use. Read through a ref inside the
+  // start/advance callbacks so toggling types does NOT auto-restart the live
+  // session — it applies to the next start (and reads the latest value then).
+  const typePrefs = useQuestionTypePrefs();
+  const enabledTypesRef = useRef(typePrefs.enabled);
+  useEffect(() => {
+    enabledTypesRef.current = typePrefs.enabled;
+  }, [typePrefs.enabled]);
+  // True when the server returned questions but the user's type filter removed
+  // them all — a dedicated empty state, distinct from the server's emptyReason.
+  const [filteredEmpty, setFilteredEmpty] = useState(false);
+
   const item = currentItem(state);
 
   const startSession = useCallback(() => {
@@ -100,12 +114,21 @@ export function SessionRunner({
       setBestStreak(0);
       setFx(null);
       setShowSummary(false);
+      setFilteredEmpty(false);
       if (interTimerRef.current) clearTimeout(interTimerRef.current);
       setInterstitial(null);
       dispatch({ type: "LOADING" });
       const res = await startSessionAction({ mode, topicSlug, deckId, practice });
       if (res.ok) {
-        dispatch({ type: "LOADED", session: res.session });
+        const items = filterItemsByType(res.session.items, enabledTypesRef.current);
+        // Server had questions but every one was a type the user turned off →
+        // show the "filters too strict" empty state instead of the generic one.
+        if (res.session.items.length > 0 && items.length === 0) {
+          setFilteredEmpty(true);
+          dispatch({ type: "LOADED", session: { ...res.session, items: [], emptyReason: null } });
+        } else {
+          dispatch({ type: "LOADED", session: { ...res.session, items } });
+        }
       } else {
         dispatch({ type: "LOAD_FAILED", error: res.error });
       }
@@ -116,6 +139,14 @@ export function SessionRunner({
   useEffect(() => {
     startSession();
   }, [startSession]);
+
+  // From the "filters too strict" empty state: turn every type back on and
+  // re-run. Sync the ref before restarting so the fresh start sees the reset.
+  const restoreAllTypes = useCallback(() => {
+    typePrefs.reset();
+    enabledTypesRef.current = [...DEFAULT_ENABLED_TYPES];
+    startSession();
+  }, [typePrefs, startSession]);
 
   // Reset the latency clock whenever a fresh question takes the screen.
   useEffect(() => {
@@ -159,7 +190,8 @@ export function SessionRunner({
   const advancePast = useCallback(
     (result: AnswerResponse) => {
       if (!item) return;
-      const requeue = result.requeue?.items ?? [];
+      // The next-stage ladder obeys the same type filter as the initial queue.
+      const requeue = filterItemsByType(result.requeue?.items ?? [], enabledTypesRef.current);
       const clearedType = item.type;
 
       // Peek at what becomes the next card to detect a round boundary —
@@ -305,6 +337,8 @@ export function SessionRunner({
         practice={practice}
         practiceHref={practiceTarget?.href}
         practiceLabel={practiceTarget?.label}
+        filtered={filteredEmpty}
+        onRestoreTypes={restoreAllTypes}
       />
     );
   }
@@ -326,7 +360,8 @@ export function SessionRunner({
 
   const variant = item.type === "flashcard" ? "flashcard" : "quiz";
   const isLast =
-    state.queue.length === 1 && !(feedback?.requeue?.items?.length);
+    state.queue.length === 1 &&
+    filterItemsByType(feedback?.requeue?.items ?? [], typePrefs.enabled).length === 0;
   const stages = deriveStages(state);
 
   return (
@@ -341,6 +376,7 @@ export function SessionRunner({
         showStreak={streak > 1}
         settings={settings}
         setSetting={setSetting}
+        typePrefs={typePrefs}
         onExit={() => router.push("/learn")}
         onPeek={() => setShowSummary(true)}
         fx={fx}

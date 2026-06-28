@@ -4,6 +4,7 @@ import {
   DumbbellIcon,
   PartyPopperIcon,
   PlusCircleIcon,
+  SlidersHorizontalIcon,
   SparklesIcon,
   TrophyIcon,
   type LucideIcon,
@@ -22,6 +23,10 @@ interface EmptyStateProps {
   practiceHref?: string;
   /** Label for the practice CTA (e.g. "Practice this deck"). */
   practiceLabel?: string;
+  /** The session had questions, but the user's question-type filter hid them all. */
+  filtered?: boolean;
+  /** Turn every question type back on and restart (paired with `filtered`). */
+  onRestoreTypes?: () => void;
 }
 
 type Tint = "primary" | "violet" | "amber";
@@ -47,7 +52,20 @@ function copyFor(
   reason: EmptyReason | null,
   nextDueAt: string | null,
   practice: boolean,
+  filtered: boolean,
 ): Copy {
+  // The user filtered out every type this session's words offered.
+  if (filtered) {
+    return {
+      icon: SlidersHorizontalIcon,
+      tint: "violet",
+      title: "Those question types are off",
+      body: "This session's words only had question types you've turned off. Turn some back on to study them.",
+      cta: { label: "Back to dashboard", href: "/dashboard" },
+      alt: { label: "Browse topics", href: "/learn?mode=topic" },
+    };
+  }
+
   // A practice run never waits on a clock — exhaustion just means "all drilled".
   if (practice) {
     return {
@@ -118,14 +136,18 @@ export function EmptyState({
   practice = false,
   practiceHref,
   practiceLabel = "Practice these words",
+  filtered = false,
+  onRestoreTypes,
 }: EmptyStateProps) {
   const { icon: Icon, tint, title, body, cta, alt } = copyFor(
     reason,
     nextDueAt,
     practice,
+    filtered,
   );
   // In practice mode there's no clock to count down to.
-  const showCountdown = !practice && reason === "no_due_cards" && nextDueAt;
+  const showCountdown = !practice && !filtered && reason === "no_due_cards" && nextDueAt;
+  const showRestore = filtered && Boolean(onRestoreTypes);
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-3.5rem)] w-full max-w-md flex-col justify-center px-4 py-10">
@@ -151,7 +173,17 @@ export function EmptyState({
         )}
 
         <div className="mt-7 flex flex-col gap-2.5">
-          {practiceHref && (
+          {showRestore && (
+            <button
+              type="button"
+              onClick={onRestoreTypes}
+              className="lr-btn lr-btn--primary lr-btn--lg lr-btn--block"
+            >
+              <SlidersHorizontalIcon className="size-5" />
+              Turn all types on
+            </button>
+          )}
+          {practiceHref && !filtered && (
             <Link
               href={practiceHref}
               className="lr-btn lr-btn--primary lr-btn--lg lr-btn--block"
@@ -164,7 +196,7 @@ export function EmptyState({
             href={cta.href}
             className={cn(
               "lr-btn lr-btn--block",
-              practiceHref
+              (practiceHref && !filtered) || showRestore
                 ? "lr-btn--ghost lr-btn--md"
                 : "lr-btn--primary lr-btn--lg",
             )}
