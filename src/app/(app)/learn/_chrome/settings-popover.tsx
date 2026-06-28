@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   type LucideIcon,
+  BellIcon,
   ImageIcon,
   SettingsIcon,
   SparklesIcon,
@@ -24,6 +25,7 @@ interface SettingsPopoverProps {
 
 const SETTING_ICONS: Record<keyof LearnSettings, LucideIcon> = {
   autoplay: Volume2Icon,
+  sound: BellIcon,
   showPhonetic: TypeIcon,
   showImage: ImageIcon,
   stageTransitions: SparklesIcon,

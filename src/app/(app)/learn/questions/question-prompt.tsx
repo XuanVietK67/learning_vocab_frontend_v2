@@ -22,6 +22,8 @@ interface QuestionPromptProps {
   onAnswerChange: (answer: string | null) => void;
   /** Self-rating submit (flashcards only). */
   onSubmit: (rating: string) => void;
+  /** Pronunciation auto-pass: a high acoustic score submits + advances (no Check). */
+  onAutoPass: (attemptId: string) => void;
 }
 
 /**
@@ -35,6 +37,7 @@ export function QuestionPrompt({
   result,
   onAnswerChange,
   onSubmit,
+  onAutoPass,
 }: QuestionPromptProps) {
   const { prompt, lemma } = item;
   const quiz = { lemma, disabled, result, onAnswerChange };
@@ -71,7 +74,14 @@ export function QuestionPrompt({
     case "image_choice":
       return <ImageChoiceQuestion prompt={prompt} {...quiz} />;
     case "pronunciation":
-      return <PronunciationQuestion prompt={prompt} vocabularyId={item.vocabularyId} {...quiz} />;
+      return (
+        <PronunciationQuestion
+          prompt={prompt}
+          vocabularyId={item.vocabularyId}
+          onAutoPass={onAutoPass}
+          {...quiz}
+        />
+      );
     default: {
       // Exhaustiveness guard — a new question type will surface here at compile time.
       const _exhaustive: never = prompt;

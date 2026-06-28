@@ -16,6 +16,7 @@ import {
   LearnSettingsProvider,
 } from "./_chrome/settings-context";
 import { useQuestionTypePrefs } from "./_chrome/use-question-type-prefs";
+import { useLearnSounds } from "./_chrome/use-learn-sounds";
 import { StageInterstitial } from "./_chrome/stage-interstitial";
 import { EmptyState } from "./empty-state";
 import { QuestionPrompt } from "./questions/question-prompt";
@@ -32,6 +33,9 @@ import { SessionSummary } from "./session-summary";
 
 /** How long the stage-clear beat lingers before auto-advancing (skippable). */
 const STAGE_AUTO_ADVANCE_MS = 1400;
+
+/** How long a passed spoken answer shows its “correct” beat before auto-advancing. */
+const PASS_AUTO_ADVANCE_MS = 1100;
 
 /** Read of the user's reduced-motion preference (SSR-safe). */
 function prefersReducedMotion(): boolean {
@@ -78,6 +82,8 @@ export function SessionRunner({
   // boundary, auto-advancing after a beat (always skippable).
   const [interstitial, setInterstitial] = useState<InterstitialState | null>(null);
   const interTimerRef = useRef<number | null>(null);
+  // Pending auto-advance after a spoken answer auto-passes (skips Continue).
+  const passTimerRef = useRef<number | null>(null);
 
   // Card-level UI state layered on top of the queue machine.
   const [answer, setAnswer] = useState<string | null>(null);
@@ -91,6 +97,8 @@ export function SessionRunner({
   const setSetting = useCallback((key: keyof LearnSettings, value: boolean) => {
     setSettings((s) => ({ ...s, [key]: value }));
   }, []);
+  // Feedback cues (ding/soft tone/applause) — gated by the Sound effects toggle.
+  const { playCorrect, playWrong, playCelebrate } = useLearnSounds(settings.sound);
 
   // Which question types future sessions may use. Read through a ref inside the
   // start/advance callbacks so toggling types does NOT auto-restart the live
@@ -116,6 +124,7 @@ export function SessionRunner({
       setShowSummary(false);
       setFilteredEmpty(false);
       if (interTimerRef.current) clearTimeout(interTimerRef.current);
+      if (passTimerRef.current) clearTimeout(passTimerRef.current);
       setInterstitial(null);
       dispatch({ type: "LOADING" });
       const res = await startSessionAction({ mode, topicSlug, deckId, practice });
@@ -172,8 +181,10 @@ export function SessionRunner({
     setFx(result.correct ? "ok" : "bad");
     setFxKey((k) => k + 1);
     if (result.correct) setConfettiKey((k) => k + 1);
+    if (result.correct) playCorrect();
+    else playWrong();
     window.setTimeout(() => setFx(null), 850);
-  }, []);
+  }, [playCorrect, playWrong]);
 
   const skipInterstitial = useCallback(() => {
     if (interTimerRef.current) {
@@ -190,6 +201,12 @@ export function SessionRunner({
   const advancePast = useCallback(
     (result: AnswerResponse) => {
       if (!item) return;
+      // Any advance (manual or auto) cancels a pending auto-pass timer so a late
+      // Continue tap can't double-advance.
+      if (passTimerRef.current) {
+        clearTimeout(passTimerRef.current);
+        passTimerRef.current = null;
+      }
       // The next-stage ladder obeys the same type filter as the initial queue.
       const requeue = filterItemsByType(result.requeue?.items ?? [], enabledTypesRef.current);
       const clearedType = item.type;
@@ -211,6 +228,10 @@ export function SessionRunner({
       setFeedback(null);
       setAnswer(null);
 
+      // Cleared a question type (moved to a new type, or finished the last one)
+      // → applause. Gated only by the Sound toggle, not the visual interstitial.
+      if (!next || next.type !== clearedType) playCelebrate();
+
       // Stage cleared → play the interstitial before the next round's first card.
       // Skipped on the final card (→ summary), when disabled, or reduced-motion
       // (the persistent stage map still updates — an instant, static swap).
@@ -225,11 +246,11 @@ export function SessionRunner({
         interTimerRef.current = window.setTimeout(skipInterstitial, STAGE_AUTO_ADVANCE_MS);
       }
     },
-    [item, state, settings.stageTransitions, skipInterstitial],
+    [item, state, settings.stageTransitions, skipInterstitial, playCelebrate],
   );
 
   const handleSubmit = useCallback(
-    (userAnswer: string) => {
+    (userAnswer: string, opts?: { autoPass?: boolean }) => {
       if (!item || feedback !== null || isPending) return;
       const latencyMs = Math.max(0, Math.round(performance.now() - questionStartRef.current));
       const type = item.type;
@@ -250,13 +271,36 @@ export function SessionRunner({
         });
 
         if (res.ok) {
+          // Pronunciation grading isn't shipped on the backend yet: submitting an
+          // attemptId is graded "wrong" and the server requeues the word. Re-
+          // passing that requeue each time loops the session forever (it never
+          // drains to "done"). Until the backend ships, the client score is
+          // authoritative — a >70 auto-pass counts correct — and we drop the
+          // server's bogus pronunciation requeue so the word can't re-enqueue.
+          const result =
+            type === "pronunciation"
+              ? {
+                  ...res.result,
+                  requeue: null,
+                  correct: opts?.autoPass ? true : res.result.correct,
+                }
+              : res.result;
           // Flashcards are a feedback-only step: skip the reveal/Continue beat
           // and advance straight off the "Got it" commit.
           if (type === "flashcard") {
-            advancePast(res.result);
+            advancePast(result);
           } else {
-            setFeedback(res.result);
-            scoreFeedback(res.result, type);
+            setFeedback(result);
+            scoreFeedback(result, type);
+            // Auto-pass also skips the manual Continue: advance after the
+            // "correct" beat (still skippable via Continue during the window).
+            if (opts?.autoPass) {
+              if (passTimerRef.current) clearTimeout(passTimerRef.current);
+              passTimerRef.current = window.setTimeout(
+                () => advancePast(result),
+                PASS_AUTO_ADVANCE_MS,
+              );
+            }
           }
         } else if (res.expired) {
           dispatch({ type: "EXPIRED" });
@@ -266,6 +310,12 @@ export function SessionRunner({
       });
     },
     [item, feedback, isPending, state.sessionId, scoreFeedback, advancePast],
+  );
+
+  // Pronunciation auto-pass: a high acoustic score submits + advances, no Check.
+  const handleAutoPass = useCallback(
+    (attemptId: string) => handleSubmit(attemptId, { autoPass: true }),
+    [handleSubmit],
   );
 
   const handleContinue = useCallback(() => {
@@ -299,9 +349,10 @@ export function SessionRunner({
     return () => window.removeEventListener("keydown", onKey);
   }, [interstitial, skipInterstitial]);
 
-  // Drop any pending auto-advance timer on unmount.
+  // Drop any pending auto-advance timers on unmount.
   useEffect(() => () => {
     if (interTimerRef.current) clearTimeout(interTimerRef.current);
+    if (passTimerRef.current) clearTimeout(passTimerRef.current);
   }, []);
 
   if (state.status === "loading") {
@@ -401,6 +452,7 @@ export function SessionRunner({
           result={feedback}
           onAnswerChange={setAnswer}
           onSubmit={handleSubmit}
+          onAutoPass={handleAutoPass}
         />
       </SessionShell>
 
