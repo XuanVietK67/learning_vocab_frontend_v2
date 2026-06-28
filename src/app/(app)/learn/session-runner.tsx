@@ -124,9 +124,11 @@ export function SessionRunner({
     }
   }, [item?.sessionItemId, feedback]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Scores a graded answer: rolls the streak and fires the celebration FX
-  // (gradable types only — flashcards are calm self-rated browse).
+  // Scores a graded answer: rolls the streak and fires the celebration FX.
+  // Flashcards are a calm browse step (always committed "good") — neutral to
+  // the streak and FX, so the streak reflects real recall on graded quizzes.
   const scoreFeedback = useCallback((result: AnswerResponse, type: QuestionType) => {
+    if (type === "flashcard") return;
     if (result.correct) {
       setStreak((s) => {
         const next = s + 1;
@@ -136,13 +138,63 @@ export function SessionRunner({
     } else {
       setStreak(0);
     }
-    if (type !== "flashcard") {
-      setFx(result.correct ? "ok" : "bad");
-      setFxKey((k) => k + 1);
-      if (result.correct) setConfettiKey((k) => k + 1);
-      window.setTimeout(() => setFx(null), 850);
-    }
+    setFx(result.correct ? "ok" : "bad");
+    setFxKey((k) => k + 1);
+    if (result.correct) setConfettiKey((k) => k + 1);
+    window.setTimeout(() => setFx(null), 850);
   }, []);
+
+  const skipInterstitial = useCallback(() => {
+    if (interTimerRef.current) {
+      clearTimeout(interTimerRef.current);
+      interTimerRef.current = null;
+    }
+    setInterstitial(null);
+  }, []);
+
+  // Pop the just-graded card off the queue, splice any requeue, roll the stage
+  // tally, and play the stage-clear interstitial on a round (type) boundary.
+  // Driven by the result value (not `feedback` state) so it can run straight off
+  // a submit — flashcards self-advance, quiz types call it from Continue.
+  const advancePast = useCallback(
+    (result: AnswerResponse) => {
+      if (!item) return;
+      const requeue = result.requeue?.items ?? [];
+      const clearedType = item.type;
+
+      // Peek at what becomes the next card to detect a round boundary —
+      // requeued ladders splice onto the back, so the immediate next is queue[1].
+      const rest = state.queue.slice(1);
+      const newQueue = requeue.length ? [...rest, ...requeue] : rest;
+      const next = newQueue[0] ?? null;
+
+      // The cleared round's score: the running tally plus this just-graded answer.
+      const prior = roundStat(state, clearedType);
+      const stat = {
+        correct: prior.correct + (result.correct ? 1 : 0),
+        total: prior.total + 1,
+      };
+
+      dispatch({ type: "NEXT", correct: result.correct, requeue });
+      setFeedback(null);
+      setAnswer(null);
+
+      // Stage cleared → play the interstitial before the next round's first card.
+      // Skipped on the final card (→ summary), when disabled, or reduced-motion
+      // (the persistent stage map still updates — an instant, static swap).
+      if (
+        next &&
+        next.type !== clearedType &&
+        settings.stageTransitions &&
+        !prefersReducedMotion()
+      ) {
+        setInterstitial({ clearedType, nextType: next.type, stat });
+        if (interTimerRef.current) clearTimeout(interTimerRef.current);
+        interTimerRef.current = window.setTimeout(skipInterstitial, STAGE_AUTO_ADVANCE_MS);
+      }
+    },
+    [item, state, settings.stageTransitions, skipInterstitial],
+  );
 
   const handleSubmit = useCallback(
     (userAnswer: string) => {
@@ -166,8 +218,14 @@ export function SessionRunner({
         });
 
         if (res.ok) {
-          setFeedback(res.result);
-          scoreFeedback(res.result, type);
+          // Flashcards are a feedback-only step: skip the reveal/Continue beat
+          // and advance straight off the "Got it" commit.
+          if (type === "flashcard") {
+            advancePast(res.result);
+          } else {
+            setFeedback(res.result);
+            scoreFeedback(res.result, type);
+          }
         } else if (res.expired) {
           dispatch({ type: "EXPIRED" });
         } else {
@@ -175,53 +233,12 @@ export function SessionRunner({
         }
       });
     },
-    [item, feedback, isPending, state.sessionId, scoreFeedback],
+    [item, feedback, isPending, state.sessionId, scoreFeedback, advancePast],
   );
 
-  const skipInterstitial = useCallback(() => {
-    if (interTimerRef.current) {
-      clearTimeout(interTimerRef.current);
-      interTimerRef.current = null;
-    }
-    setInterstitial(null);
-  }, []);
-
   const handleContinue = useCallback(() => {
-    if (!feedback || !item) return;
-    const requeue = feedback.requeue?.items ?? [];
-    const clearedType = item.type;
-
-    // Peek at what becomes the next card to detect a round (type) boundary —
-    // requeued ladders splice onto the back, so the immediate next is queue[1].
-    const rest = state.queue.slice(1);
-    const newQueue = requeue.length ? [...rest, ...requeue] : rest;
-    const next = newQueue[0] ?? null;
-
-    // The cleared round's score: the running tally plus this just-graded answer.
-    const prior = roundStat(state, clearedType);
-    const stat = {
-      correct: prior.correct + (feedback.correct ? 1 : 0),
-      total: prior.total + 1,
-    };
-
-    dispatch({ type: "NEXT", correct: feedback.correct, requeue });
-    setFeedback(null);
-    setAnswer(null);
-
-    // Stage cleared → play the interstitial before the next round's first card.
-    // Skipped on the final card (→ summary), when disabled, or reduced-motion
-    // (the persistent stage map still updates — an instant, static swap).
-    if (
-      next &&
-      next.type !== clearedType &&
-      settings.stageTransitions &&
-      !prefersReducedMotion()
-    ) {
-      setInterstitial({ clearedType, nextType: next.type, stat });
-      if (interTimerRef.current) clearTimeout(interTimerRef.current);
-      interTimerRef.current = window.setTimeout(skipInterstitial, STAGE_AUTO_ADVANCE_MS);
-    }
-  }, [feedback, item, state, settings.stageTransitions, skipInterstitial]);
+    if (feedback) advancePast(feedback);
+  }, [feedback, advancePast]);
 
   // Keyboard: Enter checks a ready quiz answer (flashcards own their own reveal).
   useEffect(() => {

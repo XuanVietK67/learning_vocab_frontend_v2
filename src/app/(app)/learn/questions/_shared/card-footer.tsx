@@ -26,8 +26,9 @@ interface CardFooterProps {
 
 /**
  * The study card's action slot. While answering it shows the Check button (quiz
- * types only); once graded it shows the reveal strip (quiz) + an amber Continue.
- * Flashcards are self-rated, so they only get the Continue control on reveal.
+ * types only); once graded it shows the reveal strip + an amber Continue.
+ * Flashcards own their own "Got it" control in the card body and self-advance,
+ * so they get no footer control at all.
  */
 export function CardFooter({
   result,
@@ -38,25 +39,19 @@ export function CardFooter({
   onCheck,
   onContinue,
 }: CardFooterProps) {
+  if (variant === "flashcard") return null;
+
   if (result === null) {
-    if (variant === "flashcard") return null;
     return <CheckButton disabled={!canCheck} onClick={onCheck} />;
   }
 
   return (
     <div className="flex flex-col gap-3.5">
-      {variant === "quiz" && (
-        <RevealBar
-          correct={result.correct}
-          answer={result.correctAnswer}
-          subtext={notCounted ? PRACTICE_NOT_COUNTED : undefined}
-        />
-      )}
-      {variant === "flashcard" && notCounted && (
-        <p className="text-center text-[13px] font-semibold text-(--ink-2)">
-          {PRACTICE_NOT_COUNTED}
-        </p>
-      )}
+      <RevealBar
+        correct={result.correct}
+        answer={result.correctAnswer}
+        subtext={notCounted ? PRACTICE_NOT_COUNTED : undefined}
+      />
       <button
         type="button"
         autoFocus

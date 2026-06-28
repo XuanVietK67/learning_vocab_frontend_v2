@@ -1,13 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ArrowRightIcon } from "lucide-react";
 
-import { cn } from "@/lib/utils";
-import {
-  FLASHCARD_RATINGS,
-  type FlashcardPrompt,
-  type FlashcardRating,
-} from "@/lib/me/learn/types";
+import type { FlashcardPrompt } from "@/lib/me/learn/types";
 import type { FlashcardQuestionProps } from "./types";
 import { AudioButton } from "./_shared/audio-button";
 import { ImageTile } from "./_shared/image-tile";
@@ -15,39 +11,31 @@ import { useLearnSettings } from "../_chrome/settings-context";
 
 type Props = FlashcardQuestionProps & { prompt: FlashcardPrompt };
 
-const RATING_LABELS: Record<FlashcardRating, string> = {
-  forgot: "Forgot",
-  hard: "Hard",
-  good: "Good",
-  easy: "Easy",
-};
-
-const RATING_CLASSES: Record<FlashcardRating, string> = {
-  forgot: "bg-(--bad-soft) text-(--bad)",
-  hard: "bg-(--amber-soft) text-[#e08600]",
-  good: "bg-(--primary-soft) text-(--primary-ink)",
-  easy: "bg-(--sky-soft) text-(--sky)",
-};
-
-/** Study card: term + image tile, flip to the meaning, then self-rate recall. */
+/** Study card: term + image tile, flip to the meaning, then one tap to continue. */
 export function FlashcardQuestion({ prompt, disabled, result, onSubmit }: Props) {
   const settings = useLearnSettings();
   const [flipped, setFlipped] = useState(false);
   const revealed = result !== null || flipped;
 
-  // Space/Enter toggles the reveal (ignored while typing elsewhere).
+  // Keyboard: Space flips the card; Enter reveals it, then commits ("Got it").
+  // Ignored while typing elsewhere, once graded, or mid-submit.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement | null)?.tagName?.toLowerCase();
       if (tag === "input" || tag === "textarea") return;
-      if (e.key === " " || e.key === "Enter") {
+      if (e.key === " ") {
         e.preventDefault();
         setFlipped((f) => !f);
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (result !== null || disabled) return;
+        if (flipped) onSubmit("good");
+        else setFlipped(true);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [flipped, result, disabled, onSubmit]);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -131,26 +119,18 @@ export function FlashcardQuestion({ prompt, disabled, result, onSubmit }: Props)
         </div>
       )}
 
-      {/* Self-rating (only while still ungraded and revealed) */}
+      {/* Commit control — one tap to continue (only while ungraded and revealed) */}
       {result === null && flipped && (
-        <div className="mt-4 flex w-full flex-col gap-2.5">
-          <p className="lr-eyebrow text-center">How well did you know it?</p>
-          <div className="grid grid-cols-4 gap-2">
-            {FLASHCARD_RATINGS.map((rating) => (
-              <button
-                key={rating}
-                type="button"
-                disabled={disabled}
-                onClick={() => onSubmit(rating)}
-                className={cn(
-                  "h-14 rounded-2xl text-sm font-extrabold transition active:scale-[0.98] disabled:opacity-60",
-                  RATING_CLASSES[rating],
-                )}
-              >
-                {RATING_LABELS[rating]}
-              </button>
-            ))}
-          </div>
+        <div className="mt-4">
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => onSubmit("good")}
+            className="lr-btn lr-btn--primary lr-btn--lg lr-btn--block"
+          >
+            Got it
+            <ArrowRightIcon className="size-5" strokeWidth={2.4} />
+          </button>
         </div>
       )}
     </div>
