@@ -32,7 +32,16 @@ type Props = QuizQuestionProps & {
   prompt: PronunciationPrompt;
   /** The item's signed vocabulary id — scored by `/v1/pronunciation/score`. */
   vocabularyId: string;
+  /**
+   * A high acoustic score auto-passes: the attempt is submitted and the session
+   * advances without the manual Check. Fired once with the scored `attemptId`
+   * when `overallScore` clears {@link PASS_THRESHOLD}.
+   */
+  onAutoPass: (attemptId: string) => void;
 };
+
+/** Acoustic score (0–100) a spoken attempt must clear to auto-pass (skip Check). */
+const PASS_THRESHOLD = 70;
 
 /**
  * Record → score → result card for the acoustic `pronunciation` question. The
@@ -496,7 +505,14 @@ function KeyboardState({
 }
 
 /* ====================  main  ==================== */
-export function PronunciationQuestion({ prompt, vocabularyId, disabled, result, onAnswerChange }: Props) {
+export function PronunciationQuestion({
+  prompt,
+  vocabularyId,
+  disabled,
+  result,
+  onAnswerChange,
+  onAutoPass,
+}: Props) {
   const settings = useLearnSettings();
   const recorder = useWavRecorder();
   const revealed = result !== null;
@@ -610,6 +626,8 @@ export function PronunciationQuestion({ prompt, vocabularyId, disabled, result, 
       if (res.ok) {
         setScore(res.score);
         setPhase("result");
+        // A confident score is an automatic pass — submit + advance, no Check.
+        if (res.score.overallScore > PASS_THRESHOLD) onAutoPass(res.score.attemptId);
       } else if (res.kind === "serviceDown") {
         setPhase("serviceDown");
       } else {
@@ -617,7 +635,7 @@ export function PronunciationQuestion({ prompt, vocabularyId, disabled, result, 
         setPhase("recError");
       }
     },
-    [prompt.lemma, vocabularyId],
+    [prompt.lemma, vocabularyId, onAutoPass],
   );
 
   const startRecording = useCallback(async () => {
