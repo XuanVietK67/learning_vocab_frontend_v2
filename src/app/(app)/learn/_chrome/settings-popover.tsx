@@ -5,6 +5,7 @@ import {
   type LucideIcon,
   BellIcon,
   ImageIcon,
+  Music2Icon,
   SettingsIcon,
   SparklesIcon,
   TypeIcon,
@@ -26,6 +27,7 @@ interface SettingsPopoverProps {
 const SETTING_ICONS: Record<keyof LearnSettings, LucideIcon> = {
   autoplay: Volume2Icon,
   sound: BellIcon,
+  music: Music2Icon,
   showPhonetic: TypeIcon,
   showImage: ImageIcon,
   stageTransitions: SparklesIcon,

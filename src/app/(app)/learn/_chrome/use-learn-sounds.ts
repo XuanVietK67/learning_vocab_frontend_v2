@@ -4,29 +4,40 @@ import { useCallback, useEffect, useRef } from "react";
 
 /**
  * Public paths for the study-loop feedback clips. Files live in `public/` and
- * are served from the site root. `celebrate` reuses the applause clip already
- * shipped; drop `correct.mp3` / `wrong.mp3` alongside it to enable those cues
- * (a missing file simply no-ops — see `play`).
+ * are served from the site root. `correct`/`wrong` each ship two interchangeable
+ * variants so the cue varies answer-to-answer (one is picked at random per play);
+ * `celebrate` reuses the applause clip. A missing file simply no-ops — see `play`.
  */
 const SOUND_SRC = {
   correct: "/correct.mp3",
+  correct2: "/correct2.mp3",
   wrong: "/wrong.mp3",
+  wrong2: "/wrong2.mp3",
   celebrate: "/congratulation.mp3",
 } as const;
 
 type SoundName = keyof typeof SOUND_SRC;
 
-/** Per-clip volume — keep the wrong cue soft (not punishing), applause fuller. */
+/** Per-clip volume — keep the wrong cues soft (not punishing), applause fuller. */
 const VOLUME: Record<SoundName, number> = {
-  correct: 0.55,
+  correct: 0.4,
+  correct2: 0.4,
   wrong: 0.4,
+  wrong2: 0.4,
   celebrate: 0.7,
 };
 
+/** Interchangeable clips for each graded outcome — one is chosen at random per play. */
+const CORRECT_VARIANTS: SoundName[] = ["correct", "correct2"];
+const WRONG_VARIANTS: SoundName[] = ["wrong", "wrong2"];
+
+const pickRandom = <T,>(pool: readonly T[]): T =>
+  pool[Math.floor(Math.random() * pool.length)];
+
 export interface LearnSounds {
-  /** Short ding when a graded answer is correct. */
+  /** Short ding when a graded answer is correct (one of two variants, at random). */
   playCorrect: () => void;
-  /** Soft low tone when a graded answer is wrong. */
+  /** Soft low tone when a graded answer is wrong (one of two variants, at random). */
   playWrong: () => void;
   /** Applause when a question type (round) is cleared. */
   playCelebrate: () => void;
@@ -75,8 +86,8 @@ export function useLearnSounds(enabled: boolean): LearnSounds {
     void el.play().catch(() => {});
   }, []);
 
-  const playCorrect = useCallback(() => play("correct"), [play]);
-  const playWrong = useCallback(() => play("wrong"), [play]);
+  const playCorrect = useCallback(() => play(pickRandom(CORRECT_VARIANTS)), [play]);
+  const playWrong = useCallback(() => play(pickRandom(WRONG_VARIANTS)), [play]);
   const playCelebrate = useCallback(() => play("celebrate"), [play]);
 
   return { playCorrect, playWrong, playCelebrate };

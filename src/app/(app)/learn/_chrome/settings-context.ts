@@ -8,6 +8,8 @@ export interface LearnSettings {
   autoplay: boolean;
   /** Play feedback cues: a ding on correct, soft tone on wrong, applause on a cleared round. */
   sound: boolean;
+  /** Loop a background track while the session is in progress. */
+  music: boolean;
   /** Show the IPA phonetic line on flashcards. */
   showPhonetic: boolean;
   /** Show the decorative image tile on flashcards. */
@@ -19,6 +21,7 @@ export interface LearnSettings {
 export const DEFAULT_LEARN_SETTINGS: LearnSettings = {
   autoplay: false,
   sound: true,
+  music: true,
   showPhonetic: true,
   showImage: true,
   stageTransitions: true,
@@ -27,6 +30,7 @@ export const DEFAULT_LEARN_SETTINGS: LearnSettings = {
 export const SETTING_LABELS: Record<keyof LearnSettings, string> = {
   autoplay: "Auto-play audio",
   sound: "Sound effects",
+  music: "Background music",
   showPhonetic: "Show phonetic",
   showImage: "Show image",
   stageTransitions: "Stage celebrations",
