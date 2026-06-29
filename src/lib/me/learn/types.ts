@@ -98,6 +98,8 @@ export interface MeaningInContextPrompt {
   sentence: string;
   highlightedSpan: HighlightSpan;
   options: string[];
+  /** Translation of `sentence`; reveal after answering. Null when none stored. */
+  sentenceTranslation: string | null;
 }
 
 export interface SenseDisambiguationPrompt {
@@ -106,6 +108,8 @@ export interface SenseDisambiguationPrompt {
   /** May be null when the backend can't locate the word in the sentence. */
   highlightedSpan: HighlightSpan | null;
   options: string[];
+  /** Translation of `sentence`; reveal after answering. Null when none stored. */
+  sentenceTranslation: string | null;
 }
 
 export interface ListeningClozePrompt {

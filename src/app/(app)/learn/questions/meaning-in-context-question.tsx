@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { MeaningInContextPrompt } from "@/lib/me/learn/types";
 import type { QuizQuestionProps } from "./types";
 import { OptionList } from "./_shared/option-list";
+import { SentenceGloss } from "./_shared/sentence-gloss";
 
 type Props = QuizQuestionProps & { prompt: MeaningInContextPrompt };
 
@@ -31,6 +32,7 @@ export function MeaningInContextQuestion({ prompt, disabled, result, onAnswerCha
           <mark className="lr-mark">{span}</mark>
           {after}
         </p>
+        {revealed && <SentenceGloss translation={prompt.sentenceTranslation} />}
       </div>
 
       <OptionList

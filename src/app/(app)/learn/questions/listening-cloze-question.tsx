@@ -5,9 +5,9 @@ import { useEffect, useState } from "react";
 import type { ListeningClozePrompt } from "@/lib/me/learn/types";
 import type { QuizQuestionProps } from "./types";
 import { AudioButton } from "./_shared/audio-button";
-import { HintChip } from "./_shared/hint-chip";
 import { OptionList } from "./_shared/option-list";
 import { SentenceBlank } from "./_shared/sentence-blank";
+import { SentenceGloss } from "./_shared/sentence-gloss";
 import { useLearnSettings } from "../_chrome/settings-context";
 
 type Props = QuizQuestionProps & { prompt: ListeningClozePrompt };
@@ -39,13 +39,15 @@ export function ListeningClozeQuestion({ prompt, disabled, result, onAnswerChang
         <span className="text-[13px] font-semibold text-(--ink-3)">Tap to replay</span>
       </div>
 
-      <SentenceBlank
-        text={prompt.sentenceWithBlank}
-        value={revealed ? result.correctAnswer : selected}
-        state={revealed ? "ok" : null}
-        size="sm"
-      />
-      <HintChip hint={prompt.hintTranslation} />
+      <div>
+        <SentenceBlank
+          text={prompt.sentenceWithBlank}
+          value={revealed ? result.correctAnswer : selected}
+          state={revealed ? "ok" : null}
+          size="sm"
+        />
+        {revealed && <SentenceGloss translation={prompt.hintTranslation} />}
+      </div>
 
       <OptionList
         options={prompt.options}

@@ -5,9 +5,9 @@ import { useEffect, useState } from "react";
 import type { ClozeMcqPrompt } from "@/lib/me/learn/types";
 import type { QuizQuestionProps } from "./types";
 import { AudioButton } from "./_shared/audio-button";
-import { HintChip } from "./_shared/hint-chip";
 import { OptionList } from "./_shared/option-list";
 import { SentenceBlank } from "./_shared/sentence-blank";
+import { SentenceGloss } from "./_shared/sentence-gloss";
 import { useLearnSettings } from "../_chrome/settings-context";
 
 type Props = QuizQuestionProps & { prompt: ClozeMcqPrompt };
@@ -30,12 +30,14 @@ export function ClozeMcqQuestion({ prompt, disabled, result, onAnswerChange }: P
         </div>
       )}
 
-      <SentenceBlank
-        text={prompt.sentenceWithBlank}
-        value={revealed ? result.correctAnswer : selected}
-        state={revealed ? "ok" : null}
-      />
-      <HintChip hint={prompt.hintTranslation} />
+      <div>
+        <SentenceBlank
+          text={prompt.sentenceWithBlank}
+          value={revealed ? result.correctAnswer : selected}
+          state={revealed ? "ok" : null}
+        />
+        {revealed && <SentenceGloss translation={prompt.hintTranslation} />}
+      </div>
 
       <OptionList
         options={prompt.options}
