@@ -17,6 +17,7 @@ import {
 } from "./_chrome/settings-context";
 import { useQuestionTypePrefs } from "./_chrome/use-question-type-prefs";
 import { useLearnSounds } from "./_chrome/use-learn-sounds";
+import { useLearnMusic } from "./_chrome/use-learn-music";
 import { StageInterstitial } from "./_chrome/stage-interstitial";
 import { EmptyState } from "./empty-state";
 import { QuestionPrompt } from "./questions/question-prompt";
@@ -99,6 +100,9 @@ export function SessionRunner({
   }, []);
   // Feedback cues (ding/soft tone/applause) — gated by the Sound effects toggle.
   const { playCorrect, playWrong, playCelebrate } = useLearnSounds(settings.sound);
+  // Looping background track — plays from session start and replays until the
+  // session leaves the live state. Gated by the Background music toggle.
+  useLearnMusic(settings.music, state.status === "active");
 
   // Which question types future sessions may use. Read through a ref inside the
   // start/advance callbacks so toggling types does NOT auto-restart the live
