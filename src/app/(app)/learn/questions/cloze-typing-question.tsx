@@ -5,8 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import type { ClozeTypingPrompt } from "@/lib/me/learn/types";
 import type { QuizQuestionProps } from "./types";
 import { AudioButton } from "./_shared/audio-button";
-import { HintChip } from "./_shared/hint-chip";
 import { SentenceBlank } from "./_shared/sentence-blank";
+import { SentenceGloss } from "./_shared/sentence-gloss";
 import { useLearnSettings } from "../_chrome/settings-context";
 
 type Props = QuizQuestionProps & { prompt: ClozeTypingPrompt };
@@ -57,13 +57,15 @@ export function ClozeTypingQuestion({ prompt, disabled, result, onAnswerChange }
 
       <div className="lr-eyebrow">Type the missing word</div>
 
-      <SentenceBlank
-        text={prompt.sentenceWithBlank}
-        slot={revealed ? undefined : input}
-        value={revealed ? result.correctAnswer : undefined}
-        state={revealed ? "ok" : null}
-      />
-      <HintChip hint={prompt.hintTranslation} />
+      <div>
+        <SentenceBlank
+          text={prompt.sentenceWithBlank}
+          slot={revealed ? undefined : input}
+          value={revealed ? result.correctAnswer : undefined}
+          state={revealed ? "ok" : null}
+        />
+        {revealed && <SentenceGloss translation={prompt.hintTranslation} />}
+      </div>
     </div>
   );
 }

@@ -1037,6 +1037,27 @@
   background: var(--card-2);
 }
 
+/* example-sentence translation — post-answer "subtitle" under the sentence */
+.lr-gloss {
+  display: flex;
+  gap: 9px;
+  margin-top: 11px;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 17px;
+  line-height: 1.45;
+  letter-spacing: -0.005em;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+.lr-gloss svg {
+  flex: none;
+  margin-top: 3px;
+  opacity: 0.65;
+}
+
 /* filter select — community grid (Language / Level) */
 .lr-select {
   font-family: inherit;

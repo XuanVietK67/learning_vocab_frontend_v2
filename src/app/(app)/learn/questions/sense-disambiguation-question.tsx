@@ -5,6 +5,7 @@ import { Fragment, useEffect, useState } from "react";
 import type { SenseDisambiguationPrompt } from "@/lib/me/learn/types";
 import type { QuizQuestionProps } from "./types";
 import { OptionList } from "./_shared/option-list";
+import { SentenceGloss } from "./_shared/sentence-gloss";
 
 type Props = QuizQuestionProps & { prompt: SenseDisambiguationPrompt };
 
@@ -68,6 +69,7 @@ export function SenseDisambiguationQuestion({
             highlightLemma(sentence, lemma)
           )}
         </p>
+        {revealed && <SentenceGloss translation={prompt.sentenceTranslation} />}
       </div>
 
       <OptionList
