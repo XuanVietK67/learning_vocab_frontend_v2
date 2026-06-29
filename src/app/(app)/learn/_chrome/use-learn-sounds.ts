@@ -11,7 +11,7 @@ import { useCallback, useEffect, useRef } from "react";
 const SOUND_SRC = {
   correct: "/correct.mp3",
   wrong: "/wrong.mp3",
-  celebrate: "/congratulation_clapping_hand.mp3",
+  celebrate: "/congratulation.mp3",
 } as const;
 
 type SoundName = keyof typeof SOUND_SRC;
