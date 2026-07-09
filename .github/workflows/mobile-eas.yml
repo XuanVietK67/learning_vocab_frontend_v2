@@ -1,0 +1,62 @@
+name: Mobile EAS Build
+
+# Builds the Expo app (apps/mobile) via EAS. Additive to the web CI — mobile
+# does NOT deploy to Vercel.
+#
+# Prerequisites (one-time, done by a maintainer):
+#   1. `cd apps/mobile && eas init`  → creates the EAS project + writes the
+#      project id into app.json (extra.eas.projectId).
+#   2. Add an `EXPO_TOKEN` repository secret (Expo account access token).
+# Until then this workflow is a no-op on PRs (it only runs on manual dispatch
+# and on master pushes that touch the mobile app or shared package).
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "EAS build profile"
+        required: true
+        default: "preview"
+        type: choice
+        options: [development, preview, production]
+  push:
+    branches: [master]
+    paths:
+      - "apps/mobile/**"
+      - "packages/shared/**"
+
+concurrency:
+  group: mobile-eas-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: EAS build (${{ github.event.inputs.profile || 'preview' }})
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check mobile
+        run: pnpm --filter mobile type-check
+
+      - name: Set up EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: EAS build
+        working-directory: apps/mobile
+        run: eas build --non-interactive --no-wait --platform all --profile ${{ github.event.inputs.profile || 'preview' }}

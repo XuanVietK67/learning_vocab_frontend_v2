@@ -1,11 +1,18 @@
 name: CI
 
-# Quality gates + gated production deploy.
-#  - `verify` runs on every push to master and every PR targeting it.
+# Quality gates + gated production deploy for the WEB app (apps/web).
+#  - `verify` runs on every push to master and every PR targeting it: it
+#    type-checks the whole workspace and lints/builds the web app.
 #  - `deploy` runs ONLY after `verify` passes on a push to master (i.e. once a
 #    PR is merged). PRs never deploy to production — they only get a Vercel
 #    preview URL (from Vercel's Git integration), and production on master is
-#    disabled in vercel.json so this job is the single source of prod deploys.
+#    disabled in apps/web/vercel.json so this job is the single source of prod
+#    deploys.
+#
+# Monorepo note: the web app now lives at apps/web. In the Vercel project
+# (learning_vocabulary) set Root Directory = apps/web and enable "Include files
+# outside the Root Directory in the Build Step" so packages/shared is available.
+# Mobile (apps/mobile) is built separately via .github/workflows/mobile-eas.yml.
 
 on:
   push:
@@ -20,39 +27,36 @@ concurrency:
 
 jobs:
   verify:
-    name: Lint, type-check & build
+    name: Lint, type-check & build (web)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-          # No `cache: npm` — that requires a committed lockfile, and
-          # package-lock.json is intentionally gitignored (see below).
+          cache: pnpm
 
       - name: Install dependencies
-        # Use `npm install`, not `npm ci`. The lockfile is authored on Windows,
-        # so it carries the win32 native binaries (@tailwindcss/oxide-win32-*,
-        # lightningcss-win32-*, sharp-win32) but not the Linux ones this runner
-        # needs (@tailwindcss/oxide-linux-x64-gnu, lightningcss-linux-x64-gnu,
-        # which pull picomatch@4 via tinyglobby). Strict `npm ci` rejects that
-        # mismatch on Linux; `npm install` reconciles the platform deps — the
-        # same way Vercel installs on its Linux build.
-        run: npm install --no-audit --no-fund
+        run: pnpm install --frozen-lockfile
 
-      - name: Lint
-        run: npm run lint
+      - name: Type-check (all workspaces)
+        run: pnpm turbo run type-check
 
-      - name: Type-check
-        run: npm run type-check
+      - name: Lint (web)
+        run: pnpm turbo run lint --filter=web
 
-      - name: Build
-        run: npm run build
+      - name: Build (web)
+        run: pnpm turbo run build --filter=web
         env:
           # The build only needs these to compile; real values live in the
           # Vercel project settings. API_BASE_URL has a localhost fallback in
-          # src/lib/env.ts, so this is just here to make the build deterministic.
+          # apps/web/src/lib/env.ts, so this is just here to make the build
+          # deterministic.
           API_BASE_URL: http://localhost:3000
           NEXT_PUBLIC_APP_URL: http://localhost:3001
 
@@ -63,9 +67,6 @@ jobs:
     # here; since on.push.branches is [master], a push event is always master.
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    # environment:
-    #   name: production
-    #   url: ${{ steps.deploy.outputs.url }}
     env:
       # Identify the Vercel project without interactive `vercel link`.
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -83,6 +84,7 @@ jobs:
       - name: Pull Vercel project settings & production env
         # Brings down API_BASE_URL, NEXT_PUBLIC_* etc. configured in the Vercel
         # dashboard so the build below matches a real Vercel production build.
+        # Root Directory (apps/web) is part of these pulled settings.
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Build (Vercel, production)
