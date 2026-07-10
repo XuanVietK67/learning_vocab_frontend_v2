@@ -186,6 +186,29 @@ export type Prompt =
 // --- Session item envelope --------------------------------------------------
 
 /**
+ * The studied word shown in an example sentence — attached to every session item
+ * as unsigned render data. Surfaced on the answer reveal (under the
+ * correct/incorrect strip) so the learner sees the word in context on every
+ * question type, not just the bare lemma. Null when the word has no example.
+ *
+ * Built server-side by `QuestionBuilderService` from the same `example`
+ * (`sentence`/`translation`) the sentence-based builders already read — this
+ * just normalizes it onto the envelope for the reveal. See
+ * docs/api/learn_reveal_example.md.
+ */
+export interface WordExample {
+  /** Example sentence featuring the studied word, in the target language. */
+  sentence: string;
+  /** Translation of `sentence` in the learner's language; null when unavailable. */
+  translation: string | null;
+  /**
+   * Character offsets of the studied word within `sentence` (inclusive-start,
+   * exclusive-end), used to emphasize it. Null when the backend can't locate it.
+   */
+  highlightedSpan: HighlightSpan | null;
+}
+
+/**
  * One signed question. The fields between `vocabularyId` and `signature` are
  * HMAC-signed and expire ~30 min after `issuedAtMs`; they must be echoed
  * verbatim to `POST /answer`.
@@ -206,6 +229,12 @@ export interface SessionItem {
   nonce: string;
   issuedAtMs: number;
   signature: string;
+  /**
+   * The word in an example sentence (+ translation) — unsigned render data used
+   * only for the post-answer reveal. Optional/nullable so the client renders
+   * nothing until the backend populates it (forward-compatible).
+   */
+  example?: WordExample | null;
   prompt: Prompt;
 }
 

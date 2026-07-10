@@ -2,8 +2,9 @@
 
 import { ArrowRightIcon } from "lucide-react";
 
-import type { AnswerResponse } from "@/lib/me/learn/types";
+import type { AnswerResponse, WordExample } from "@/lib/me/learn/types";
 import { CheckButton } from "./check-button";
+import { ExampleReveal } from "./example-reveal";
 import { RevealBar } from "./reveal-bar";
 
 /** Practice-mode hint: the answer was graded but left the schedule untouched. */
@@ -20,6 +21,8 @@ interface CardFooterProps {
   isLast: boolean;
   /** Practice mode: the answer was graded but didn't move the SRS schedule. */
   notCounted?: boolean;
+  /** The item's word-in-context example, shown under the reveal strip. */
+  example?: WordExample | null;
   onCheck?: () => void;
   onContinue: () => void;
 }
@@ -36,6 +39,7 @@ export function CardFooter({
   canCheck = false,
   isLast,
   notCounted = false,
+  example,
   onCheck,
   onContinue,
 }: CardFooterProps) {
@@ -52,6 +56,7 @@ export function CardFooter({
         answer={result.correctAnswer}
         subtext={notCounted ? PRACTICE_NOT_COUNTED : undefined}
       />
+      <ExampleReveal example={example} />
       <button
         type="button"
         autoFocus

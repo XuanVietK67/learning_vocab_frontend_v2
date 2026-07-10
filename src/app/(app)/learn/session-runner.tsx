@@ -444,6 +444,7 @@ export function SessionRunner({
             canCheck={answer !== null}
             isLast={isLast}
             notCounted={feedback?.progress?.counted === false}
+            example={item.example}
             onCheck={() => answer !== null && handleSubmit(answer)}
             onContinue={handleContinue}
           />

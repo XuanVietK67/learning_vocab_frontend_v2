@@ -1058,6 +1058,34 @@
   opacity: 0.65;
 }
 
+/* answer-reveal example: the studied word shown in a real sentence + its
+   translation, in a soft panel under the correct/incorrect strip */
+.lr-ex {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--card-2);
+  padding: 12px 15px 13px;
+}
+.lr-ex-tr {
+  display: flex;
+  gap: 9px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 15px;
+  line-height: 1.45;
+  letter-spacing: -0.005em;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+.lr-ex-tr svg {
+  flex: none;
+  margin-top: 2px;
+  opacity: 0.65;
+}
+
 /* filter select — community grid (Language / Level) */
 .lr-select {
   font-family: inherit;
