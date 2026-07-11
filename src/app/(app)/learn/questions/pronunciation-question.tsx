@@ -33,9 +33,10 @@ type Props = QuizQuestionProps & {
   /** The item's signed vocabulary id — scored by `/v1/pronunciation/score`. */
   vocabularyId: string;
   /**
-   * A high acoustic score auto-passes: the attempt is submitted and the session
-   * advances without the manual Check. Fired once with the scored `attemptId`
-   * when `overallScore` clears {@link PASS_THRESHOLD}.
+   * A high acoustic score auto-passes: the attempt is submitted without the
+   * manual Check (the score is the answer), then the footer's Continue gates
+   * the advance. Fired once with the scored `attemptId` when `overallScore`
+   * clears {@link PASS_THRESHOLD}.
    */
   onAutoPass: (attemptId: string) => void;
 };
@@ -626,7 +627,8 @@ export function PronunciationQuestion({
       if (res.ok) {
         setScore(res.score);
         setPhase("result");
-        // A confident score is an automatic pass — submit + advance, no Check.
+        // A confident score is an automatic pass — submit the attempt without
+        // the manual Check; the footer's Continue still gates the advance.
         if (res.score.overallScore > PASS_THRESHOLD) onAutoPass(res.score.attemptId);
       } else if (res.kind === "serviceDown") {
         setPhase("serviceDown");

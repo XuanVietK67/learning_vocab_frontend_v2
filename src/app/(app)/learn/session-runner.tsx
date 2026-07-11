@@ -35,9 +35,6 @@ import { SessionSummary } from "./session-summary";
 /** How long the stage-clear beat lingers before auto-advancing (skippable). */
 const STAGE_AUTO_ADVANCE_MS = 1400;
 
-/** How long a passed spoken answer shows its “correct” beat before auto-advancing. */
-const PASS_AUTO_ADVANCE_MS = 1100;
-
 /** Read of the user's reduced-motion preference (SSR-safe). */
 function prefersReducedMotion(): boolean {
   return (
@@ -83,8 +80,6 @@ export function SessionRunner({
   // boundary, auto-advancing after a beat (always skippable).
   const [interstitial, setInterstitial] = useState<InterstitialState | null>(null);
   const interTimerRef = useRef<number | null>(null);
-  // Pending auto-advance after a spoken answer auto-passes (skips Continue).
-  const passTimerRef = useRef<number | null>(null);
 
   // Card-level UI state layered on top of the queue machine.
   const [answer, setAnswer] = useState<string | null>(null);
@@ -128,7 +123,6 @@ export function SessionRunner({
       setShowSummary(false);
       setFilteredEmpty(false);
       if (interTimerRef.current) clearTimeout(interTimerRef.current);
-      if (passTimerRef.current) clearTimeout(passTimerRef.current);
       setInterstitial(null);
       dispatch({ type: "LOADING" });
       const res = await startSessionAction({ mode, topicSlug, deckId, practice });
@@ -205,12 +199,6 @@ export function SessionRunner({
   const advancePast = useCallback(
     (result: AnswerResponse) => {
       if (!item) return;
-      // Any advance (manual or auto) cancels a pending auto-pass timer so a late
-      // Continue tap can't double-advance.
-      if (passTimerRef.current) {
-        clearTimeout(passTimerRef.current);
-        passTimerRef.current = null;
-      }
       // The next-stage ladder obeys the same type filter as the initial queue.
       const requeue = filterItemsByType(result.requeue?.items ?? [], enabledTypesRef.current);
       const clearedType = item.type;
@@ -294,17 +282,11 @@ export function SessionRunner({
           if (type === "flashcard") {
             advancePast(result);
           } else {
+            // Auto-pass skips the redundant Check (the score IS the answer) but
+            // still gates on the footer's Continue — the learner keeps the
+            // result card (gauge, phoneme breakdown, replay) until they're done.
             setFeedback(result);
             scoreFeedback(result, type);
-            // Auto-pass also skips the manual Continue: advance after the
-            // "correct" beat (still skippable via Continue during the window).
-            if (opts?.autoPass) {
-              if (passTimerRef.current) clearTimeout(passTimerRef.current);
-              passTimerRef.current = window.setTimeout(
-                () => advancePast(result),
-                PASS_AUTO_ADVANCE_MS,
-              );
-            }
           }
         } else if (res.expired) {
           dispatch({ type: "EXPIRED" });
@@ -316,7 +298,8 @@ export function SessionRunner({
     [item, feedback, isPending, state.sessionId, scoreFeedback, advancePast],
   );
 
-  // Pronunciation auto-pass: a high acoustic score submits + advances, no Check.
+  // Pronunciation auto-pass: a high acoustic score submits the attempt without
+  // the manual Check, then gates on the footer's Continue like every quiz type.
   const handleAutoPass = useCallback(
     (attemptId: string) => handleSubmit(attemptId, { autoPass: true }),
     [handleSubmit],
@@ -353,10 +336,9 @@ export function SessionRunner({
     return () => window.removeEventListener("keydown", onKey);
   }, [interstitial, skipInterstitial]);
 
-  // Drop any pending auto-advance timers on unmount.
+  // Drop any pending stage-clear timer on unmount.
   useEffect(() => () => {
     if (interTimerRef.current) clearTimeout(interTimerRef.current);
-    if (passTimerRef.current) clearTimeout(passTimerRef.current);
   }, []);
 
   if (state.status === "loading") {
